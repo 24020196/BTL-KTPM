@@ -1,0 +1,1 @@
+initialize module and services
