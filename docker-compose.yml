@@ -1,0 +1,35 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ktpm-db
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  app:
+    build: .
+    container_name: ktpm-app
+    restart: on-failure
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${DB_NAME}?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SERVER_PORT: ${SERVER_PORT}
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql-data:
