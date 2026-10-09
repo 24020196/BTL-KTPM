@@ -2,6 +2,7 @@ package com.test.ktpm.Mapper;
 
 import com.test.ktpm.Dto.Response.OrderItemResponse;
 import com.test.ktpm.Dto.Response.OrderResponse;
+import com.test.ktpm.Dto.Response.OrderSummaryDto;
 import com.test.ktpm.Entity.Order;
 import com.test.ktpm.Entity.OrderDetail;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,36 @@ public class OrderMapper {
                 .employeeName(order.getEmployee() != null ? order.getEmployee().getEmployeeName() : null)
                 .items(itemResponses)
                 .totalAmount(total)
+                .build();
+    }
+
+    public OrderSummaryDto toSummaryDto(Order order) {
+        if (order == null) {
+            return null;
+        }
+
+        BigDecimal total = BigDecimal.ZERO;
+        int totalQuantity = 0;
+
+        if (order.getOrderDetails() != null) {
+            for (OrderDetail detail : order.getOrderDetails()) {
+                OrderItemResponse itemResponse = orderDetailMapper.toResponse(detail);
+                if (itemResponse != null && itemResponse.getSubtotal() != null) {
+                    total = total.add(itemResponse.getSubtotal());
+                    totalQuantity += (itemResponse.getQuantityOrdered() != null ? itemResponse.getQuantityOrdered() : 0);
+                }
+            }
+        }
+
+        return OrderSummaryDto.builder()
+                .orderNumber(order.getOrderNumber())
+                .orderDate(order.getOrderDate())
+                .customerNumber(order.getCustomer() != null ? order.getCustomer().getCustomerNumber() : null)
+                .customerName(order.getCustomer() != null ? order.getCustomer().getCustomerName() : null)
+                .employeeNumber(order.getEmployee() != null ? order.getEmployee().getEmployeeNumber() : null)
+                .employeeName(order.getEmployee() != null ? order.getEmployee().getEmployeeName() : null)
+                .totalAmount(total)
+                .totalItems(totalQuantity)
                 .build();
     }
 
