@@ -1,7 +1,7 @@
 package com.test.ktpm.Services;
 
 import com.test.ktpm.Dto.Request.EmployeeRequest;
-import com.test.ktpm.Dto.Response.CustomerDto;
+import com.test.ktpm.Dto.Response.CustomerResponse;
 import com.test.ktpm.Dto.Response.EmployeeDto;
 import com.test.ktpm.Dto.Response.OrderSummaryDto;
 import com.test.ktpm.Dto.Response.SalesSummaryDto;
@@ -154,11 +154,11 @@ public class EmployeeService {
     }
 
     @Transactional(readOnly = true)
-    public List<CustomerDto> getCustomersByEmployee(Long id) {
+    public List<CustomerResponse> getCustomersByEmployee(Long id) {
         if (!employeeRepository.existsById(id)) {
             throw new ResourceNotFoundException("Không tìm thấy nhân viên với mã: " + id);
         }
         List<Customer> customers = customerRepository.findBySalesRepEmployeeNumber(id);
-        return customerMapper.toDtoList(customers);
+        return customerMapper.toResponseList(customers);
     }
 }

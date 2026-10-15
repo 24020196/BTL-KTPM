@@ -1,7 +1,7 @@
 package com.test.ktpm.Controllers;
 
 import com.test.ktpm.Dto.Request.EmployeeRequest;
-import com.test.ktpm.Dto.Response.CustomerDto;
+import com.test.ktpm.Dto.Response.CustomerResponse;
 import com.test.ktpm.Dto.Response.EmployeeDto;
 import com.test.ktpm.Dto.Response.OrderSummaryDto;
 import com.test.ktpm.Dto.Response.SalesSummaryDto;
@@ -110,7 +110,7 @@ public class EmployeeController {
             @ApiResponse(responseCode = "404", description = "Không tìm thấy nhân viên")
     })
     @GetMapping("/{id}/customers")
-    public ResponseEntity<List<CustomerDto>> getCustomersByEmployee(@PathVariable Long id) {
+    public ResponseEntity<List<CustomerResponse>> getCustomersByEmployee(@PathVariable Long id) {
         return ResponseEntity.ok(employeeService.getCustomersByEmployee(id));
     }
 }
