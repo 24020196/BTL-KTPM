@@ -2,7 +2,7 @@ package com.test.ktpm.Controllers;
 
 import com.test.ktpm.Dto.Request.EmployeeRequest;
 import com.test.ktpm.Dto.Response.CustomerResponse;
-import com.test.ktpm.Dto.Response.EmployeeDto;
+import com.test.ktpm.Dto.Response.EmployeeResponse;
 import com.test.ktpm.Dto.Response.OrderSummaryDto;
 import com.test.ktpm.Dto.Response.SalesSummaryDto;
 import com.test.ktpm.Services.EmployeeService;
@@ -35,7 +35,7 @@ public class EmployeeController {
             @ApiResponse(responseCode = "200", description = "Lấy danh sách thành công")
     })
     @GetMapping
-    public ResponseEntity<List<EmployeeDto>> getAllEmployees() {
+    public ResponseEntity<List<EmployeeResponse>> getAllEmployees() {
         return ResponseEntity.ok(employeeService.getAllEmployees());
     }
 
@@ -45,7 +45,7 @@ public class EmployeeController {
             @ApiResponse(responseCode = "404", description = "Không tìm thấy nhân viên")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<EmployeeDto> getEmployeeById(@PathVariable Long id) {
+    public ResponseEntity<EmployeeResponse> getEmployeeById(@PathVariable Long id) {
         return ResponseEntity.ok(employeeService.getEmployeeById(id));
     }
 
@@ -56,8 +56,8 @@ public class EmployeeController {
             @ApiResponse(responseCode = "404", description = "Không tìm thấy người quản lý hoặc tài khoản người dùng liên kết")
     })
     @PostMapping
-    public ResponseEntity<EmployeeDto> createEmployee(@Valid @RequestBody EmployeeRequest request) {
-        EmployeeDto createdEmployee = employeeService.createEmployee(request);
+    public ResponseEntity<EmployeeResponse> createEmployee(@Valid @RequestBody EmployeeRequest request) {
+        EmployeeResponse createdEmployee = employeeService.createEmployee(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdEmployee);
     }
 
@@ -68,7 +68,7 @@ public class EmployeeController {
             @ApiResponse(responseCode = "404", description = "Không tìm thấy nhân viên, người quản lý hoặc tài khoản người dùng")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<EmployeeDto> updateEmployee(@PathVariable Long id, @Valid @RequestBody EmployeeRequest request) {
+    public ResponseEntity<EmployeeResponse> updateEmployee(@PathVariable Long id, @Valid @RequestBody EmployeeRequest request) {
         return ResponseEntity.ok(employeeService.updateEmployee(id, request));
     }
 
@@ -78,7 +78,7 @@ public class EmployeeController {
             @ApiResponse(responseCode = "404", description = "Không tìm thấy nhân viên")
     })
     @GetMapping("/{id}/subordinates")
-    public ResponseEntity<List<EmployeeDto>> getSubordinates(@PathVariable Long id) {
+    public ResponseEntity<List<EmployeeResponse>> getSubordinates(@PathVariable Long id) {
         return ResponseEntity.ok(employeeService.getSubordinates(id));
     }
 

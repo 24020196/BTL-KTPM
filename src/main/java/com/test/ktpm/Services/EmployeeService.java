@@ -2,7 +2,7 @@ package com.test.ktpm.Services;
 
 import com.test.ktpm.Dto.Request.EmployeeRequest;
 import com.test.ktpm.Dto.Response.CustomerResponse;
-import com.test.ktpm.Dto.Response.EmployeeDto;
+import com.test.ktpm.Dto.Response.EmployeeResponse;
 import com.test.ktpm.Dto.Response.OrderSummaryDto;
 import com.test.ktpm.Dto.Response.SalesSummaryDto;
 import com.test.ktpm.Entity.Customer;
@@ -41,19 +41,19 @@ public class EmployeeService {
     private final CustomerMapper customerMapper;
 
     @Transactional(readOnly = true)
-    public List<EmployeeDto> getAllEmployees() {
-        return employeeMapper.toDtoList(employeeRepository.findAll());
+    public List<EmployeeResponse> getAllEmployees() {
+        return employeeMapper.toResponseList(employeeRepository.findAll());
     }
 
     @Transactional(readOnly = true)
-    public EmployeeDto getEmployeeById(Long id) {
+    public EmployeeResponse getEmployeeById(Long id) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhân viên với mã: " + id));
-        return employeeMapper.toDto(employee);
+        return employeeMapper.toResponse(employee);
     }
 
     @Transactional
-    public EmployeeDto createEmployee(EmployeeRequest request) {
+    public EmployeeResponse createEmployee(EmployeeRequest request) {
         Employee reportsTo = null;
         if (request.getReportsTo() != null) {
             reportsTo = employeeRepository.findById(request.getReportsTo())
@@ -73,11 +73,11 @@ public class EmployeeService {
                 .build();
 
         Employee savedEmployee = employeeRepository.save(employee);
-        return employeeMapper.toDto(savedEmployee);
+        return employeeMapper.toResponse(savedEmployee);
     }
 
     @Transactional
-    public EmployeeDto updateEmployee(Long id, EmployeeRequest request) {
+    public EmployeeResponse updateEmployee(Long id, EmployeeRequest request) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhân viên với mã: " + id));
 
@@ -103,16 +103,16 @@ public class EmployeeService {
         employee.setEmployeeName(request.getEmployeeName());
 
         Employee updatedEmployee = employeeRepository.save(employee);
-        return employeeMapper.toDto(updatedEmployee);
+        return employeeMapper.toResponse(updatedEmployee);
     }
 
     @Transactional(readOnly = true)
-    public List<EmployeeDto> getSubordinates(Long id) {
+    public List<EmployeeResponse> getSubordinates(Long id) {
         if (!employeeRepository.existsById(id)) {
             throw new ResourceNotFoundException("Không tìm thấy nhân viên với mã: " + id);
         }
         List<Employee> subordinates = employeeRepository.findByReportsToEmployeeNumber(id);
-        return employeeMapper.toDtoList(subordinates);
+        return employeeMapper.toResponseList(subordinates);
     }
 
     @Transactional(readOnly = true)

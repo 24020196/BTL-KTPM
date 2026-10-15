@@ -1,6 +1,6 @@
 package com.test.ktpm.Mapper;
 
-import com.test.ktpm.Dto.Response.EmployeeDto;
+import com.test.ktpm.Dto.Response.EmployeeResponse;
 import com.test.ktpm.Entity.Employee;
 import org.springframework.stereotype.Component;
 
@@ -11,12 +11,12 @@ import java.util.stream.Collectors;
 @Component
 public class EmployeeMapper {
 
-    public EmployeeDto toDto(Employee employee) {
+    public EmployeeResponse toResponse(Employee employee) {
         if (employee == null) {
             return null;
         }
 
-        return EmployeeDto.builder()
+        return EmployeeResponse.builder()
                 .employeeNumber(employee.getEmployeeNumber())
                 .employeeName(employee.getEmployeeName())
                 .reportsTo(employee.getReportsTo() != null ? employee.getReportsTo().getEmployeeNumber() : null)
@@ -26,12 +26,12 @@ public class EmployeeMapper {
                 .build();
     }
 
-    public List<EmployeeDto> toDtoList(List<Employee> employees) {
+    public List<EmployeeResponse> toResponseList(List<Employee> employees) {
         if (employees == null) {
             return Collections.emptyList();
         }
         return employees.stream()
-                .map(this::toDto)
+                .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 }
