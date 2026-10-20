@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ Thống Quản Lý Bán Hàng - KTPM</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8fafc;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: #1e293b;
+    }
+    .navbar-brand {
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+      margin-bottom: 24px;
+    }
+    .table thead th {
+      background-color: #f1f5f9;
+      color: #475569;
+      font-weight: 600;
+      border-bottom: 1px solid #cbd5e1;
+    }
+    .stat-card {
+      transition: all 0.2s ease;
+      background: white;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    .stat-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm">
+    <div class="container-fluid px-4">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+        <i class="bi bi-box-seam-fill fs-4"></i>
+        <span>KTPM Store Manager</span>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarMain">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 nav-pills" id="navTabs">
+          <li class="nav-item">
+            <a class="nav-link text-white active" href="#" onclick="switchTab('dashboard')">
+              <i class="bi bi-speedometer2 me-1"></i> Tổng quan
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-white" href="#" onclick="switchTab('products')">
+              <i class="bi bi-grid-3x3-gap-fill me-1"></i> Sản phẩm
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-white" href="#" onclick="switchTab('customers')">
+              <i class="bi bi-people-fill me-1"></i> Khách hàng
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-white" href="#" onclick="switchTab('orders')">
+              <i class="bi bi-receipt-cutoff me-1"></i> Đơn hàng
+            </a>
+          </li>
+        </ul>
+        <div class="d-flex align-items-center gap-2 text-white" id="userAuthSection"></div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid px-4 py-4">
+    <div id="alertContainer"></div>
+
+    <div id="tab-dashboard" class="tab-content-section">
+      <div class="row g-3 mb-4">
+        <div class="col-md-3">
+          <div class="card stat-card p-3">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <span class="text-muted small">Tổng Sản Phẩm</span>
+                <h3 class="fw-bold mb-0 mt-1" id="statProducts">0</h3>
+              </div>
+              <div class="stat-icon bg-primary-subtle text-primary">
+                <i class="bi bi-box-seam"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card stat-card p-3">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <span class="text-muted small">Tổng Khách Hàng</span>
+                <h3 class="fw-bold mb-0 mt-1" id="statCustomers">0</h3>
+              </div>
+              <div class="stat-icon bg-success-subtle text-success">
+                <i class="bi bi-people"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card stat-card p-3">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <span class="text-muted small">Tổng Đơn Hàng</span>
+                <h3 class="fw-bold mb-0 mt-1" id="statOrders">0</h3>
+              </div>
+              <div class="stat-icon bg-warning-subtle text-warning">
+                <i class="bi bi-receipt"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card stat-card p-3">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <span class="text-muted small">Doanh Thu Tích Lũy</span>
+                <h3 class="fw-bold mb-0 mt-1" id="statRevenue">0 đ</h3>
+              </div>
+              <div class="stat-icon bg-info-subtle text-info">
+                <i class="bi bi-cash-stack"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i>Đơn hàng gần đây</h5>
+              <button class="btn btn-sm btn-outline-primary" onclick="loadDashboard()">
+                <i class="bi bi-arrow-clockwise me-1"></i>Làm mới
+              </button>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th style="width: 100px">Mã đơn</th>
+                      <th>Ngày đặt</th>
+                      <th>Khách hàng</th>
+                      <th>Tổng tiền</th>
+                      <th>Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboardOrdersTable">
+                    <tr><td colspan="5" class="text-center py-4 text-muted">Đang tải dữ liệu...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-header bg-white py-3">
+              <h5 class="card-title mb-0 fw-bold"><i class="bi bi-shield-lock me-2 text-primary"></i>Thông tin phiên làm việc</h5>
+            </div>
+            <div class="card-body" id="sessionInfoCard">
+              <div class="text-muted mb-3">Chưa có phiên làm việc. Hãy đăng nhập để sử dụng đầy đủ các tính năng.</div>
+              <button class="btn btn-primary w-100 mb-2" onclick="quickLoginAdmin()">
+                <i class="bi bi-lightning-charge-fill me-1"></i> Đăng nhập nhanh với Admin
+              </button>
+              <button class="btn btn-outline-secondary w-100 mb-3" onclick="openLoginModal()">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Tùy chọn đăng nhập
+              </button>
+              <div class="small text-secondary bg-light p-3 rounded">
+                <div><strong>Tài khoản có sẵn trong Database:</strong></div>
+                <div>Admin: <code>admin</code> / <code>123456</code></div>
+                <div>User: <code>user1</code> / <code>123456</code></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-products" class="tab-content-section d-none">
+      <div class="card">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <h5 class="card-title mb-0 fw-bold"><i class="bi bi-grid-3x3-gap-fill me-2 text-primary"></i>Danh mục Sản phẩm</h5>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" onclick="loadProducts()">
+              <i class="bi bi-arrow-clockwise me-1"></i>Làm mới
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="openProductModal()">
+              <i class="bi bi-plus-circle me-1"></i>Thêm sản phẩm
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th style="width: 90px">Mã SP</th>
+                  <th>Tên sản phẩm</th>
+                  <th>Giá bán</th>
+                  <th>Tồn kho</th>
+                  <th style="width: 130px" class="text-end">Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="productsTableBody">
+                <tr><td colspan="5" class="text-center py-4 text-muted">Đang tải...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-customers" class="tab-content-section d-none">
+      <div class="card">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <h5 class="card-title mb-0 fw-bold"><i class="bi bi-people-fill me-2 text-success"></i>Danh sách Khách hàng</h5>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" onclick="loadCustomers()">
+              <i class="bi bi-arrow-clockwise me-1"></i>Làm mới
+            </button>
+            <button class="btn btn-success btn-sm" onclick="openCustomerModal()">
+              <i class="bi bi-person-plus me-1"></i>Thêm khách hàng
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th style="width: 100px">Mã KH</th>
+                  <th>Họ và tên</th>
+                  <th>Số điện thoại</th>
+                  <th>Tài khoản User ID</th>
+                  <th style="width: 170px" class="text-end">Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="customersTableBody">
+                <tr><td colspan="5" class="text-center py-4 text-muted">Đang tải...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-orders" class="tab-content-section d-none">
+      <div class="card">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <h5 class="card-title mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2 text-warning"></i>Quản lý Đơn hàng</h5>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" onclick="loadOrders()">
+              <i class="bi bi-arrow-clockwise me-1"></i>Làm mới
+            </button>
+            <button class="btn btn-warning btn-sm text-dark fw-semibold" onclick="openCreateOrderModal()">
+              <i class="bi bi-cart-plus me-1"></i>Tạo đơn hàng mới
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th style="width: 100px">Mã Đơn</th>
+                  <th>Ngày tạo</th>
+                  <th>Khách hàng</th>
+                  <th>Tổng giá trị</th>
+                  <th>Trạng thái</th>
+                  <th style="width: 140px" class="text-end">Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="ordersTableBody">
+                <tr><td colspan="6" class="text-center py-4 text-muted">Đang tải...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="authModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="authModalTitle">Đăng nhập</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <ul class="nav nav-pills nav-fill mb-3" id="authTabs">
+            <li class="nav-item">
+              <button class="nav-link active" onclick="setAuthMode('login')">Đăng nhập</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" onclick="setAuthMode('register')">Đăng ký</button>
+            </li>
+          </ul>
+          <form id="authForm" onsubmit="handleAuthSubmit(event)">
+            <div class="mb-3">
+              <label class="form-label">Tên đăng nhập</label>
+              <input type="text" class="form-control" id="authUsername" required value="admin">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Mật khẩu</label>
+              <input type="password" class="form-control" id="authPassword" required value="123456">
+            </div>
+            <div class="mb-3 d-none" id="authRoleGroup">
+              <label class="form-label">Vai trò (Role)</label>
+              <select class="form-select" id="authRole">
+                <option value="ROLE_USER">ROLE_USER (Khách hàng)</option>
+                <option value="ROLE_ADMIN">ROLE_ADMIN (Quản trị viên)</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary w-100" id="authSubmitBtn">Đăng nhập</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="productModalTitle">Thêm Sản Phẩm</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="productForm" onsubmit="handleProductSubmit(event)">
+          <div class="modal-body">
+            <input type="hidden" id="productId">
+            <div class="mb-3">
+              <label class="form-label">Tên sản phẩm</label>
+              <input type="text" class="form-control" id="productName" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Giá bán (VNĐ)</label>
+              <input type="number" class="form-control" id="productPrice" min="0" step="1000" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Số lượng tồn kho</label>
+              <input type="number" class="form-control" id="productQty" min="0" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-primary">Lưu sản phẩm</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="customerModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="customerModalTitle">Thêm Khách Hàng</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="customerForm" onsubmit="handleCustomerSubmit(event)">
+          <div class="modal-body">
+            <input type="hidden" id="customerNumber">
+            <div class="mb-3">
+              <label class="form-label">Họ và tên</label>
+              <input type="text" class="form-control" id="customerName" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Số điện thoại</label>
+              <input type="text" class="form-control" id="customerPhone" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Địa chỉ</label>
+              <input type="text" class="form-control" id="customerAddress" required value="Hà Nội">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-success">Lưu khách hàng</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="orderCreateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Tạo Đơn Hàng Mới</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="orderCreateForm" onsubmit="handleOrderCreateSubmit(event)">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Khách hàng</label>
+              <select class="form-select" id="orderCustomerSelect" required></select>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <label class="form-label fw-semibold mb-0">Danh sách sản phẩm mua</label>
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="addOrderItemRow()">
+                <i class="bi bi-plus me-1"></i>Thêm mặt hàng
+              </button>
+            </div>
+            <div id="orderItemsContainer" class="border rounded p-3 bg-light mb-3"></div>
+            <div class="text-end fs-5 fw-bold text-primary">
+              Tổng tiền: <span id="orderCreateTotal">0 đ</span>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            <button type="submit" class="btn btn-primary">Xác nhận tạo đơn</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="orderDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="orderDetailsTitle">Chi Tiết Đơn Hàng</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row mb-3" id="orderMetaInfo"></div>
+          <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Mã SP</th>
+                  <th>Tên sản phẩm</th>
+                  <th class="text-end">Đơn giá</th>
+                  <th class="text-center">Số lượng</th>
+                  <th class="text-end">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody id="orderDetailsItemsTable"></tbody>
+              <tfoot>
+                <tr>
+                  <th colspan="4" class="text-end">Tổng cộng:</th>
+                  <th class="text-end fs-6 text-primary" id="orderDetailsTotal"></th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="customerOrdersModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="customerOrdersTitle">Lịch Sử Mua Hàng</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Mã Đơn</th>
+                  <th>Ngày tạo</th>
+                  <th>Tổng giá trị</th>
+                  <th>Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody id="customerOrdersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let currentAuthMode = 'login';
+    let availableProducts = [];
+    let availableCustomers = [];
+
+    const authModal = new bootstrap.Modal(document.getElementById('authModal'));
+    const productModal = new bootstrap.Modal(document.getElementById('productModal'));
+    const customerModal = new bootstrap.Modal(document.getElementById('customerModal'));
+    const orderCreateModal = new bootstrap.Modal(document.getElementById('orderCreateModal'));
+    const orderDetailsModal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+    const customerOrdersModal = new bootstrap.Modal(document.getElementById('customerOrdersModal'));
+
+    function getToken() {
+      return localStorage.getItem('token');
+    }
+
+    function getUser() {
+      const u = localStorage.getItem('user');
+      return u ? JSON.parse(u) : null;
+    }
+
+    function formatCurrency(val) {
+      if (val === null || val === undefined) return '0 đ';
+      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      return d.toLocaleString('vi-VN');
+    }
+
+    function showAlert(message, type = 'success') {
+      const c = document.getElementById('alertContainer');
+      c.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+          <div>${message}</div>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      `;
+      setTimeout(() => {
+        const el = c.querySelector('.alert');
+        if (el) {
+          const a = bootstrap.Alert.getOrCreateInstance(el);
+          if (a) a.close();
+        }
+      }, 4000);
+    }
+
+    async function apiFetch(url, options = {}) {
+      const token = getToken();
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const response = await fetch(url, { ...options, headers });
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        updateAuthUI();
+        showAlert('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.', 'warning');
+        openLoginModal();
+        throw new Error('Unauthorized');
+      }
+      return response;
+    }
+
+    function updateAuthUI() {
+      const user = getUser();
+      const navSec = document.getElementById('userAuthSection');
+      const sessionCard = document.getElementById('sessionInfoCard');
+
+      if (user && user.token) {
+        navSec.innerHTML = `
+          <span class="badge bg-light text-dark px-2 py-1"><i class="bi bi-person-circle me-1"></i>${user.username}</span>
+          <span class="badge bg-info text-dark">${user.role || 'ROLE_USER'}</span>
+          <button class="btn btn-outline-light btn-sm" onclick="logout()">Đăng xuất</button>
+        `;
+        if (sessionCard) {
+          sessionCard.innerHTML = `
+            <div class="alert alert-success py-2 mb-3">Đã đăng nhập thành công</div>
+            <p class="mb-1"><strong>Người dùng:</strong> ${user.username}</p>
+            <p class="mb-3"><strong>Vai trò:</strong> <span class="badge bg-primary">${user.role || 'ROLE_USER'}</span></p>
+            <button class="btn btn-outline-danger btn-sm w-100" onclick="logout()">
+              <i class="bi bi-box-arrow-right me-1"></i> Đăng xuất
+            </button>
+          `;
+        }
+      } else {
+        navSec.innerHTML = `
+          <button class="btn btn-light btn-sm fw-semibold" onclick="quickLoginAdmin()">
+            <i class="bi bi-box-arrow-in-right me-1"></i> Đăng nhập
+          </button>
+        `;
+        if (sessionCard) {
+          sessionCard.innerHTML = `
+            <div class="text-muted mb-3">Chưa có phiên làm việc. Hãy đăng nhập để sử dụng đầy đủ các tính năng.</div>
+            <button class="btn btn-primary w-100 mb-2" onclick="quickLoginAdmin()">
+              <i class="bi bi-lightning-charge-fill me-1"></i> Đăng nhập nhanh với Admin
+            </button>
+            <button class="btn btn-outline-secondary w-100 mb-3" onclick="openLoginModal()">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Tùy chọn đăng nhập
+            </button>
+            <div class="small text-secondary bg-light p-3 rounded">
+              <div><strong>Tài khoản có sẵn trong Database:</strong></div>
+              <div>Admin: <code>admin</code> / <code>123456</code></div>
+              <div>User: <code>user1</code> / <code>123456</code></div>
+            </div>
+          `;
+        }
+      }
+    }
+
+    async function quickLoginAdmin() {
+      try {
+        const res = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'admin', password: '123456' })
+        });
+        if (!res.ok) throw new Error('Đăng nhập nhanh thất bại');
+        const data = await res.json();
+        localStorage.setItem('token', data.accessToken);
+        localStorage.setItem('user', JSON.stringify({
+          token: data.accessToken,
+          username: data.username,
+          role: data.role
+        }));
+        showAlert(`Đăng nhập thành công với tài khoản ${data.username}!`, 'success');
+        updateAuthUI();
+        loadDashboard();
+      } catch (err) {
+        openLoginModal();
+      }
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('#navTabs .nav-link').forEach(el => el.classList.remove('active'));
+      const activeBtn = Array.from(document.querySelectorAll('#navTabs .nav-link')).find(el => el.getAttribute('onclick')?.includes(tabId));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      document.querySelectorAll('.tab-content-section').forEach(el => el.classList.add('d-none'));
+      const target = document.getElementById(`tab-${tabId}`);
+      if (target) target.classList.remove('d-none');
+
+      if (tabId === 'dashboard') loadDashboard();
+      if (tabId === 'products') loadProducts();
+      if (tabId === 'customers') loadCustomers();
+      if (tabId === 'orders') loadOrders();
+    }
+
+    function openLoginModal() {
+      setAuthMode('login');
+      authModal.show();
+    }
+
+    function setAuthMode(mode) {
+      currentAuthMode = mode;
+      const roleGroup = document.getElementById('authRoleGroup');
+      const submitBtn = document.getElementById('authSubmitBtn');
+      const title = document.getElementById('authModalTitle');
+      const tabs = document.querySelectorAll('#authTabs .nav-link');
+
+      if (mode === 'login') {
+        tabs[0].classList.add('active');
+        tabs[1].classList.remove('active');
+        roleGroup.classList.add('d-none');
+        submitBtn.textContent = 'Đăng nhập';
+        title.textContent = 'Đăng nhập hệ thống';
+      } else {
+        tabs[0].classList.remove('active');
+        tabs[1].classList.add('active');
+        roleGroup.classList.remove('d-none');
+        submitBtn.textContent = 'Đăng ký';
+        title.textContent = 'Đăng ký tài khoản';
+      }
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const username = document.getElementById('authUsername').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const role = document.getElementById('authRole').value;
+
+      try {
+        if (currentAuthMode === 'login') {
+          const res = await fetch('/api/v1/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || 'Tên đăng nhập hoặc mật khẩu không chính xác');
+          }
+          const data = await res.json();
+          localStorage.setItem('token', data.accessToken);
+          localStorage.setItem('user', JSON.stringify({
+            token: data.accessToken,
+            username: data.username,
+            role: data.role
+          }));
+          showAlert(`Xin chào ${data.username}! Đăng nhập thành công.`, 'success');
+          authModal.hide();
+          updateAuthUI();
+          loadDashboard();
+        } else {
+          const res = await fetch('/api/v1/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, role })
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || 'Đăng ký thất bại, tên đăng nhập có thể đã tồn tại');
+          }
+          const data = await res.json();
+          localStorage.setItem('token', data.accessToken);
+          localStorage.setItem('user', JSON.stringify({
+            token: data.accessToken,
+            username: data.username,
+            role: data.role
+          }));
+          showAlert(`Đăng ký thành công tài khoản ${data.username}!`, 'success');
+          authModal.hide();
+          updateAuthUI();
+          loadDashboard();
+        }
+      } catch (err) {
+        showAlert(err.message, 'danger');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      updateAuthUI();
+      showAlert('Đã đăng xuất khỏi hệ thống.', 'info');
+      loadDashboard();
+    }
+
+    async function loadDashboard() {
+      try {
+        const [prodRes, custRes, ordRes] = await Promise.all([
+          apiFetch('/api/v1/products?page=0&size=100').catch(() => null),
+          apiFetch('/api/v1/customers?page=0&size=100').catch(() => null),
+          apiFetch('/api/v1/orders?page=0&size=10').catch(() => null)
+        ]);
+
+        let totalRev = 0;
+        if (prodRes && prodRes.ok) {
+          const data = await prodRes.json();
+          const items = data.content || [];
+          document.getElementById('statProducts').textContent = items.length;
+          availableProducts = items;
+        }
+
+        if (custRes && custRes.ok) {
+          const data = await custRes.json();
+          const items = data.content || [];
+          document.getElementById('statCustomers').textContent = items.length;
+          availableCustomers = items;
+        }
+
+        const tbody = document.getElementById('dashboardOrdersTable');
+        if (ordRes && ordRes.ok) {
+          const data = await ordRes.json();
+          const orders = data.content || [];
+          document.getElementById('statOrders').textContent = data.totalElements ?? orders.length;
+
+          orders.forEach(o => {
+            if (o.totalAmount) totalRev += parseFloat(o.totalAmount);
+          });
+          document.getElementById('statRevenue').textContent = formatCurrency(totalRev);
+
+          if (orders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Chưa có đơn hàng nào</td></tr>';
+          } else {
+            tbody.innerHTML = orders.slice(0, 5).map(o => `
+              <tr>
+                <td><span class="fw-bold">#${o.orderNumber}</span></td>
+                <td>${formatDate(o.orderDate)}</td>
+                <td>${o.customerName || ('Khách hàng #' + o.customerNumber)}</td>
+                <td class="fw-semibold text-primary">${formatCurrency(o.totalAmount)}</td>
+                <td><span class="badge ${getStatusBadge(o.status)}">${o.status}</span></td>
+              </tr>
+            `).join('');
+          }
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Vui lòng đăng nhập để xem dữ liệu đơn hàng</td></tr>';
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function getStatusBadge(status) {
+      switch (status) {
+        case 'COMPLETED': return 'bg-success';
+        case 'SHIPPING': return 'bg-info text-dark';
+        case 'PENDING': return 'bg-warning text-dark';
+        case 'CANCELLED': return 'bg-danger';
+        default: return 'bg-primary';
+      }
+    }
+
+    async function loadProducts() {
+      const tbody = document.getElementById('productsTableBody');
+      try {
+        const res = await apiFetch('/api/v1/products?page=0&size=100');
+        if (!res.ok) throw new Error('Không thể tải danh sách sản phẩm');
+        const data = await res.json();
+        const products = data.content || [];
+        availableProducts = products;
+
+        if (products.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Chưa có sản phẩm nào</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = products.map(p => {
+          const pId = p.id ?? p.productCode;
+          const pName = p.name ?? p.productName;
+          const pPrice = p.price ?? p.buyPrice;
+          const pQty = p.qty ?? p.quantityInStock;
+          return `
+            <tr>
+              <td><span class="badge bg-light text-dark border">#${pId}</span></td>
+              <td class="fw-semibold">${pName}</td>
+              <td class="text-primary fw-semibold">${formatCurrency(pPrice)}</td>
+              <td>
+                <span class="badge ${pQty > 10 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'} px-2 py-1">
+                  ${pQty} cái
+                </span>
+              </td>
+              <td class="text-end">
+                <button class="btn btn-outline-primary btn-sm py-1 px-2" onclick="openProductEdit(${pId})">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-danger">${err.message}</td></tr>`;
+      }
+    }
+
+    function openProductModal() {
+      document.getElementById('productModalTitle').textContent = 'Thêm Sản Phẩm Mới';
+      document.getElementById('productId').value = '';
+      document.getElementById('productName').value = '';
+      document.getElementById('productPrice').value = '';
+      document.getElementById('productQty').value = '';
+      productModal.show();
+    }
+
+    function openProductEdit(id) {
+      const p = availableProducts.find(x => (x.id ?? x.productCode) === id);
+      if (!p) return;
+      document.getElementById('productModalTitle').textContent = 'Cập Nhật Sản Phẩm';
+      document.getElementById('productId').value = p.id ?? p.productCode;
+      document.getElementById('productName').value = p.name ?? p.productName;
+      document.getElementById('productPrice').value = p.price ?? p.buyPrice;
+      document.getElementById('productQty').value = p.qty ?? p.quantityInStock;
+      productModal.show();
+    }
+
+    async function handleProductSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('productId').value;
+      const name = document.getElementById('productName').value.trim();
+      const price = parseFloat(document.getElementById('productPrice').value);
+      const qty = parseInt(document.getElementById('productQty').value, 10);
+
+      const payload = { name, price, qty };
+
+      try {
+        let res;
+        if (id) {
+          res = await apiFetch(`/api/v1/products/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+        } else {
+          res = await apiFetch('/api/v1/products', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || 'Lỗi khi lưu sản phẩm');
+        }
+        productModal.hide();
+        showAlert(id ? 'Cập nhật sản phẩm thành công!' : 'Tạo mới sản phẩm thành công!', 'success');
+        loadProducts();
+      } catch (err) {
+        showAlert(err.message, 'danger');
+      }
+    }
+
+    async function loadCustomers() {
+      const tbody = document.getElementById('customersTableBody');
+      try {
+        const res = await apiFetch('/api/v1/customers?page=0&size=100');
+        if (!res.ok) throw new Error('Không thể tải danh sách khách hàng');
+        const data = await res.json();
+        const customers = data.content || [];
+        availableCustomers = customers;
+
+        if (customers.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Chưa có khách hàng nào</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = customers.map(c => `
+          <tr>
+            <td><span class="badge bg-light text-dark border">#${c.customerNumber}</span></td>
+            <td class="fw-semibold">${c.customerName}</td>
+            <td><i class="bi bi-telephone me-1 text-muted"></i>${c.phone}</td>
+            <td>${c.userId ? `<span class="badge bg-secondary-subtle text-secondary">User #${c.userId}</span>` : '<span class="text-muted">Chưa gán</span>'}</td>
+            <td class="text-end">
+              <button class="btn btn-outline-info btn-sm py-1 px-2 me-1" title="Xem đơn hàng" onclick="viewCustomerOrders(${c.customerNumber}, '${c.customerName}')">
+                <i class="bi bi-clock-history"></i>
+              </button>
+              <button class="btn btn-outline-primary btn-sm py-1 px-2" title="Chỉnh sửa" onclick="openCustomerEdit(${c.customerNumber})">
+                <i class="bi bi-pencil-square"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-danger">${err.message}</td></tr>`;
+      }
+    }
+
+    function openCustomerModal() {
+      document.getElementById('customerModalTitle').textContent = 'Thêm Khách Hàng Mới';
+      document.getElementById('customerNumber').value = '';
+      document.getElementById('customerName').value = '';
+      document.getElementById('customerPhone').value = '';
+      document.getElementById('customerAddress').value = 'Hà Nội';
+      customerModal.show();
+    }
+
+    function openCustomerEdit(id) {
+      const c = availableCustomers.find(x => x.customerNumber === id);
+      if (!c) return;
+      document.getElementById('customerModalTitle').textContent = 'Cập Nhật Khách Hàng';
+      document.getElementById('customerNumber').value = c.customerNumber;
+      document.getElementById('customerName').value = c.customerName;
+      document.getElementById('customerPhone').value = c.phone;
+      document.getElementById('customerAddress').value = c.address || 'Hà Nội';
+      customerModal.show();
+    }
+
+    async function handleCustomerSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('customerNumber').value;
+      const customerName = document.getElementById('customerName').value.trim();
+      const phone = document.getElementById('customerPhone').value.trim();
+      const address = document.getElementById('customerAddress').value.trim();
+
+      const payload = { customerName, phone, address };
+
+      try {
+        let res;
+        if (id) {
+          res = await apiFetch(`/api/v1/customers/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+        } else {
+          res = await apiFetch('/api/v1/customers', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || 'Lỗi khi lưu khách hàng');
+        }
+        customerModal.hide();
+        showAlert(id ? 'Cập nhật khách hàng thành công!' : 'Tạo mới khách hàng thành công!', 'success');
+        loadCustomers();
+      } catch (err) {
+        showAlert(err.message, 'danger');
+      }
+    }
+
+    async function viewCustomerOrders(customerId, customerName) {
+      document.getElementById('customerOrdersTitle').textContent = `Lịch Sử Mua Hàng: ${customerName}`;
+      const tbody = document.getElementById('customerOrdersTableBody');
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Đang tải...</td></tr>';
+      customerOrdersModal.show();
+
+      try {
+        const res = await apiFetch(`/api/v1/customers/${customerId}/orders`);
+        if (!res.ok) throw new Error('Không thể tải lịch sử đơn hàng');
+        const orders = await res.json();
+
+        if (orders.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Khách hàng chưa có đơn hàng nào</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = orders.map(o => `
+          <tr>
+            <td><span class="fw-bold">#${o.orderNumber}</span></td>
+            <td>${formatDate(o.orderDate)}</td>
+            <td class="fw-semibold text-primary">${formatCurrency(o.totalAmount)}</td>
+            <td><span class="badge ${getStatusBadge(o.status)}">${o.status}</span></td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-danger">${err.message}</td></tr>`;
+      }
+    }
+
+    async function loadOrders() {
+      const tbody = document.getElementById('ordersTableBody');
+      try {
+        const res = await apiFetch('/api/v1/orders?page=0&size=100');
+        if (!res.ok) throw new Error('Không thể tải danh sách đơn hàng');
+        const data = await res.json();
+        const orders = data.content || [];
+
+        if (orders.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Chưa có đơn hàng nào</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = orders.map(o => `
+          <tr>
+            <td><span class="badge bg-light text-dark border">#${o.orderNumber}</span></td>
+            <td>${formatDate(o.orderDate)}</td>
+            <td class="fw-semibold">${o.customerName || ('Khách hàng #' + o.customerNumber)}</td>
+            <td class="text-primary fw-bold">${formatCurrency(o.totalAmount)}</td>
+            <td><span class="badge ${getStatusBadge(o.status)}">${o.status}</span></td>
+            <td class="text-end">
+              <button class="btn btn-outline-info btn-sm py-1 px-2 me-1" title="Chi tiết" onclick="viewOrderDetails(${o.orderNumber})">
+                <i class="bi bi-eye"></i>
+              </button>
+              <button class="btn btn-outline-danger btn-sm py-1 px-2" title="Xóa đơn" onclick="deleteOrder(${o.orderNumber})">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">${err.message}</td></tr>`;
+      }
+    }
+
+    async function viewOrderDetails(orderId) {
+      try {
+        const res = await apiFetch(`/api/v1/orders/${orderId}`);
+        if (!res.ok) throw new Error('Không thể lấy chi tiết đơn hàng');
+        const order = await res.json();
+
+        document.getElementById('orderDetailsTitle').textContent = `Chi Tiết Đơn Hàng #${order.orderNumber}`;
+        document.getElementById('orderMetaInfo').innerHTML = `
+          <div class="col-md-4"><strong>Khách hàng:</strong> ${order.customerName || ('#' + order.customerNumber)}</div>
+          <div class="col-md-4"><strong>Ngày đặt:</strong> ${formatDate(order.orderDate)}</div>
+          <div class="col-md-4"><strong>Trạng thái:</strong> <span class="badge ${getStatusBadge(order.status)}">${order.status}</span></div>
+        `;
+
+        const itemsTbody = document.getElementById('orderDetailsItemsTable');
+        const items = order.items || [];
+        itemsTbody.innerHTML = items.map(item => `
+          <tr>
+            <td>#${item.productCode}</td>
+            <td class="fw-semibold">${item.productName || 'Sản phẩm #' + item.productCode}</td>
+            <td class="text-end">${formatCurrency(item.priceEach)}</td>
+            <td class="text-center">${item.quantityOrdered}</td>
+            <td class="text-end fw-semibold">${formatCurrency(item.priceEach * item.quantityOrdered)}</td>
+          </tr>
+        `).join('');
+
+        document.getElementById('orderDetailsTotal').textContent = formatCurrency(order.totalAmount);
+        orderDetailsModal.show();
+      } catch (err) {
+        showAlert(err.message, 'danger');
+      }
+    }
+
+    async function deleteOrder(orderId) {
+      if (!confirm(`Bạn có chắc chắn muốn xóa đơn hàng #${orderId}? Số lượng tồn kho sẽ được hoàn trả.`)) {
+        return;
+      }
+      try {
+        const res = await apiFetch(`/api/v1/orders/${orderId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Không thể xóa đơn hàng');
+        showAlert(`Đã xóa đơn hàng #${orderId} và hoàn kho thành công!`, 'success');
+        loadOrders();
+        loadDashboard();
+      } catch (err) {
+        showAlert(err.message, 'danger');
+      }
+    }
+
+    async function openCreateOrderModal() {
+      const custSelect = document.getElementById('orderCustomerSelect');
+      try {
+        if (availableCustomers.length === 0) {
+          const res = await apiFetch('/api/v1/customers?page=0&size=100');
+          if (res.ok) {
+            const data = await res.json();
+            availableCustomers = data.content || [];
+          }
+        }
+        if (availableProducts.length === 0) {
+          const res = await apiFetch('/api/v1/products?page=0&size=100');
+          if (res.ok) {
+            const data = await res.json();
+            availableProducts = data.content || [];
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+
+      custSelect.innerHTML = availableCustomers.map(c => `
+        <option value="${c.customerNumber}">${c.customerName} (${c.phone})</option>
+      `).join('');
+
+      document.getElementById('orderItemsContainer').innerHTML = '';
+      addOrderItemRow();
+      recalcOrderTotal();
+      orderCreateModal.show();
+    }
+
+    function addOrderItemRow() {
+      const container = document.getElementById('orderItemsContainer');
+      const rowId = 'itemRow_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+      const row = document.createElement('div');
+      row.className = 'row g-2 align-items-center mb-2 order-item-row';
+      row.id = rowId;
+
+      const productOptions = availableProducts.map(p => {
+        const pId = p.id ?? p.productCode;
+        const pName = p.name ?? p.productName;
+        const pPrice = p.price ?? p.buyPrice;
+        const pQty = p.qty ?? p.quantityInStock;
+        return `
+          <option value="${pId}" data-price="${pPrice}" data-stock="${pQty}">
+            ${pName} - ${formatCurrency(pPrice)} (Tồn: ${pQty})
+          </option>
+        `;
+      }).join('');
+
+      row.innerHTML = `
+        <div class="col-md-7">
+          <select class="form-select form-select-sm product-select" onchange="recalcOrderTotal()" required>
+            ${productOptions}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text">SL</span>
+            <input type="number" class="form-control quantity-input" min="1" value="1" onchange="recalcOrderTotal()" onkeyup="recalcOrderTotal()" required>
+          </div>
+        </div>
+        <div class="col-md-2 text-end">
+          <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeOrderItemRow('${rowId}')">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      `;
+      container.appendChild(row);
+      recalcOrderTotal();
+    }
+
+    function removeOrderItemRow(rowId) {
+      const el = document.getElementById(rowId);
+      if (el) el.remove();
+      recalcOrderTotal();
+    }
+
+    function recalcOrderTotal() {
+      let total = 0;
+      document.querySelectorAll('.order-item-row').forEach(row => {
+        const sel = row.querySelector('.product-select');
+        const qtyInput = row.querySelector('.quantity-input');
+        if (sel && qtyInput) {
+          const selectedOption = sel.options[sel.selectedIndex];
+          if (selectedOption) {
+            const price = parseFloat(selectedOption.getAttribute('data-price') || 0);
+            const qty = parseInt(qtyInput.value || 0, 10);
+            total += price * qty;
+          }
+        }
+      });
+      document.getElementById('orderCreateTotal').textContent = formatCurrency(total);
+    }
+
+    async function handleOrderCreateSubmit(e) {
+      e.preventDefault();
+      const customerNumber = parseInt(document.getElementById('orderCustomerSelect').value, 10);
+      const items = [];
+
+      document.querySelectorAll('.order-item-row').forEach(row => {
+        const sel = row.querySelector('.product-select');
+        const qtyInput = row.querySelector('.quantity-input');
+        if (sel && qtyInput) {
+          const productCode = parseInt(sel.value, 10);
+          const quantityOrdered = parseInt(qtyInput.value, 10);
+          if (productCode && quantityOrdered > 0) {
+            items.push({ productCode, quantityOrdered });
+          }
+        }
+      });
+
+      if (items.length === 0) {
+        showAlert('Vui lòng chọn ít nhất 1 sản phẩm để tạo đơn hàng!', 'warning');
+        return;
+      }
+
+      try {
+        const res = await apiFetch('/api/v1/orders', {
+          method: 'POST',
+          body: JSON.stringify({ customerNumber, items })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || 'Lỗi khi tạo đơn hàng');
+        }
+        const createdOrder = await res.json();
+        orderCreateModal.hide();
+        showAlert(`Tạo đơn hàng #${createdOrder.orderNumber} thành công!`, 'success');
+        loadOrders();
+        loadDashboard();
+      } catch (err) {
+        showAlert(err.message, 'danger');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      updateAuthUI();
+      loadDashboard();
+    });
+  </script>
+</body>
+</html>
