@@ -18,4 +18,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.orderDetails WHERE o.employee.employeeNumber = :employeeNumber")
     List<Order> findAllByEmployeeNumberWithDetails(@Param("employeeNumber") Long employeeNumber);
+
+    List<Order> findByCustomerCustomerNumber(Long customerNumber);
 }
