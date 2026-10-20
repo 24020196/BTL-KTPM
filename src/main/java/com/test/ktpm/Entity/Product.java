@@ -31,6 +31,11 @@ public class Product {
     @Builder.Default
     private BigDecimal buyPrice = BigDecimal.ZERO;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    @Builder.Default
+    private ProductStatus status = ProductStatus.ACTIVE;
+
     public void decreaseStock(int quantity) {
         if (this.quantityInStock < quantity) {
             throw new BadRequestException("Sản phẩm '" + this.productName + "' (mã: " + this.productCode +

@@ -49,7 +49,7 @@ public class OrderController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Tạo đơn hàng thành công"),
             @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ hoặc sản phẩm không đủ tồn kho"),
-            @ApiResponse(responseCode = "404", description = "Không tìm thấy khách hàng, nhân viên hoặc sản phẩm")
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy khách hàng hoặc sản phẩm")
     })
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody OrderCreateRequest request) {

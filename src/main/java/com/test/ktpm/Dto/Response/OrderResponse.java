@@ -1,5 +1,6 @@
 package com.test.ktpm.Dto.Response;
 
+import com.test.ktpm.Entity.OrderStatus;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -16,8 +17,7 @@ public class OrderResponse {
     private LocalDateTime orderDate;
     private Long customerNumber;
     private String customerName;
-    private Long employeeNumber;
-    private String employeeName;
+    private OrderStatus status;
     private List<OrderItemResponse> items;
     private BigDecimal totalAmount;
 }

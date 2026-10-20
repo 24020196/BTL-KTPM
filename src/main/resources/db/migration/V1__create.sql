@@ -22,52 +22,36 @@ CREATE TABLE users
     PRIMARY KEY (user_id)
 );
 
-
-CREATE TABLE employees
-(
-    employee_number BIGINT AUTO_INCREMENT NOT NULL,
-    user_id         BIGINT UNIQUE,
-    employee_name   VARCHAR(255) NOT NULL,
-    reports_to      BIGINT DEFAULT NULL,
-    PRIMARY KEY (employee_number),
-    FOREIGN KEY (reports_to) REFERENCES employees (employee_number) ON DELETE SET NULL,
-    FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE SET NULL
-);
-
-
 CREATE TABLE customers
 (
-    customer_number           BIGINT AUTO_INCREMENT NOT NULL,
-    user_id                   BIGINT UNIQUE,
-    customer_name             VARCHAR(255) NOT NULL,
-    phone                     VARCHAR(20)  NOT NULL,
-    address                   VARCHAR(255) NOT NULL,
-    sales_rep_employee_number BIGINT DEFAULT NULL,
+    customer_number BIGINT AUTO_INCREMENT NOT NULL,
+    user_id         BIGINT UNIQUE,
+    customer_name   VARCHAR(255)          NOT NULL,
+    phone           VARCHAR(20)           NOT NULL UNIQUE,
     PRIMARY KEY (customer_number),
-    FOREIGN KEY (sales_rep_employee_number) REFERENCES employees (employee_number) ON DELETE SET NULL,
     FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE SET NULL
 );
 
 CREATE TABLE products
 (
-    product_code     BIGINT AUTO_INCREMENT NOT NULL,
-    product_name     VARCHAR(255)   NOT NULL,
-    quantity_in_stock INT           NOT NULL DEFAULT 0,
-    buy_price        DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+    product_code      BIGINT AUTO_INCREMENT NOT NULL,
+    product_name      VARCHAR(255)          NOT NULL,
+    quantity_in_stock INT                   NOT NULL DEFAULT 0,
+    buy_price         DECIMAL(15, 2)        NOT NULL DEFAULT 0.00,
+    status            VARCHAR(20)           NOT NULL DEFAULT 'ACTIVE',
     PRIMARY KEY (product_code)
 );
 
 CREATE TABLE orders
 (
     order_number    BIGINT AUTO_INCREMENT NOT NULL,
-    order_date      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    customer_number BIGINT   NOT NULL,
-    employee_number BIGINT   NOT NULL,
+    order_date      DATETIME              NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    customer_number BIGINT                NOT NULL,
+    status          VARCHAR(20)           NOT NULL DEFAULT 'PENDING',
+    total_amount    DECIMAL(15, 2)        NOT NULL DEFAULT 0.00,
     PRIMARY KEY (order_number),
-    FOREIGN KEY (customer_number) REFERENCES customers (customer_number),
-    FOREIGN KEY (employee_number) REFERENCES employees (employee_number)
+    FOREIGN KEY (customer_number) REFERENCES customers (customer_number)
 );
-
 
 CREATE TABLE order_details
 (

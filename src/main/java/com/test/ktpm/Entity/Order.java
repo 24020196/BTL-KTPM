@@ -3,6 +3,7 @@ package com.test.ktpm.Entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,18 +30,20 @@ public class Order {
     @JoinColumn(name = "customer_number", nullable = false)
     private Customer customer;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_number", nullable = false)
-    private Employee employee;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    @Builder.Default
+    private OrderStatus status = OrderStatus.PENDING;
+
+    @Column(name = "total_amount", precision = 15, scale = 2, nullable = false)
+    @Builder.Default
+    private BigDecimal totalAmount = BigDecimal.ZERO;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<OrderDetail> orderDetails = new ArrayList<>();
 
     public void addOrderDetail(OrderDetail detail) {
-        if (orderDetails == null) {
-            orderDetails = new ArrayList<>();
-        }
         orderDetails.add(detail);
         detail.setOrder(this);
     }

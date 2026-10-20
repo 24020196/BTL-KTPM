@@ -24,13 +24,6 @@ public class Customer {
     @Column(name = "customer_name", nullable = false)
     private String customerName;
 
-    @Column(name = "phone", nullable = false, length = 20)
+    @Column(name = "phone", nullable = false, unique = true, length = 20)
     private String phone;
-
-    @Column(name = "address", nullable = false)
-    private String address;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sales_rep_employee_number")
-    private Employee salesRepEmployee;
 }

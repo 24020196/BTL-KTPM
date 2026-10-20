@@ -10,10 +10,6 @@ import java.math.BigDecimal;
 public class OrderDetailMapper {
 
     public OrderItemResponse toResponse(OrderDetail detail) {
-        if (detail == null) {
-            return null;
-        }
-
         BigDecimal subtotal = detail.getPriceEach().multiply(BigDecimal.valueOf(detail.getQuantityOrdered()));
 
         return OrderItemResponse.builder()
