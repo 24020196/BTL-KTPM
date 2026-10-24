@@ -1,4 +1,4 @@
-package com.test.ktpm.Dto.Request;
+package com.test.ktpm.Model.Request;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;

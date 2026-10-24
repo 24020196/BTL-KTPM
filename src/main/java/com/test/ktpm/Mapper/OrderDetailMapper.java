@@ -1,6 +1,6 @@
 package com.test.ktpm.Mapper;
 
-import com.test.ktpm.Dto.Response.OrderItemResponse;
+import com.test.ktpm.Model.Response.OrderItemResponse;
 import com.test.ktpm.Entity.OrderDetail;
 import org.springframework.stereotype.Component;
 

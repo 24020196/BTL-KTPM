@@ -1,8 +1,8 @@
 package com.test.ktpm.Services;
 
-import com.test.ktpm.Dto.Request.OrderCreateRequest;
-import com.test.ktpm.Dto.Request.OrderItemRequest;
-import com.test.ktpm.Dto.Response.OrderResponse;
+import com.test.ktpm.Model.Request.OrderCreateRequest;
+import com.test.ktpm.Model.Request.OrderItemRequest;
+import com.test.ktpm.Model.Response.OrderResponse;
 import com.test.ktpm.Entity.*;
 import com.test.ktpm.Exceptions.BadRequestException;
 import com.test.ktpm.Exceptions.ResourceNotFoundException;
