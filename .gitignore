@@ -33,3 +33,5 @@ build/
 .vscode/
 
 .env
+src/main/resources/static/
+src/main/resources/db/migration/V2__seed_data.sql
