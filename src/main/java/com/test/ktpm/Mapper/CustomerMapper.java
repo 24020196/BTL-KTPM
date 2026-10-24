@@ -17,13 +17,7 @@ public class CustomerMapper {
                 .customerNumber(customer.getCustomerNumber())
                 .customerName(customer.getCustomerName())
                 .phone(customer.getPhone())
-                .address(customer.getAddress())
-                .salesRepEmployeeNumber(
-                        customer.getSalesRepEmployee() != null ? customer.getSalesRepEmployee().getEmployeeNumber()
-                                : null)
-                .salesRepEmployeeName(
-                        customer.getSalesRepEmployee() != null ? customer.getSalesRepEmployee().getEmployeeName()
-                                : null)
+                .userId(customer.getUser() != null ? customer.getUser().getUserId() : null)
                 .build();
     }
 
