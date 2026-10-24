@@ -1,7 +1,7 @@
 package com.test.ktpm.Mapper;
 
-import com.test.ktpm.Dto.Response.OrderItemResponse;
-import com.test.ktpm.Dto.Response.OrderResponse;
+import com.test.ktpm.Model.Response.OrderItemResponse;
+import com.test.ktpm.Model.Response.OrderResponse;
 import com.test.ktpm.Entity.Order;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

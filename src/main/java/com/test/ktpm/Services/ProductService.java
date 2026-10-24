@@ -1,7 +1,7 @@
 package com.test.ktpm.Services;
 
-import com.test.ktpm.Dto.Request.ProductRequest;
-import com.test.ktpm.Dto.Response.ProductResponse;
+import com.test.ktpm.Model.Request.ProductRequest;
+import com.test.ktpm.Model.Response.ProductResponse;
 import com.test.ktpm.Entity.Product;
 import com.test.ktpm.Exceptions.ResourceNotFoundException;
 import com.test.ktpm.Mapper.ProductMapper;

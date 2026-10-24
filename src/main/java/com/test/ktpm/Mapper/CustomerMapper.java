@@ -1,6 +1,6 @@
 package com.test.ktpm.Mapper;
 
-import com.test.ktpm.Dto.Response.CustomerResponse;
+import com.test.ktpm.Model.Response.CustomerResponse;
 import com.test.ktpm.Entity.Customer;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;

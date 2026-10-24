@@ -1,4 +1,4 @@
-package com.test.ktpm.Dto.Response;
+package com.test.ktpm.Model.Response;
 
 import com.test.ktpm.Entity.OrderStatus;
 import lombok.*;

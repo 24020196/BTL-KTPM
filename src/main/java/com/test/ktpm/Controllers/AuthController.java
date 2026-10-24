@@ -1,8 +1,8 @@
 package com.test.ktpm.Controllers;
 
-import com.test.ktpm.Dto.Request.LoginRequest;
-import com.test.ktpm.Dto.Request.RegisterRequest;
-import com.test.ktpm.Dto.Response.AuthResponse;
+import com.test.ktpm.Model.Request.LoginRequest;
+import com.test.ktpm.Model.Request.RegisterRequest;
+import com.test.ktpm.Model.Response.AuthResponse;
 import com.test.ktpm.Services.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

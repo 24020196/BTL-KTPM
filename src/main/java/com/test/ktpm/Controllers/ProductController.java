@@ -1,7 +1,7 @@
 package com.test.ktpm.Controllers;
 
-import com.test.ktpm.Dto.Request.ProductRequest;
-import com.test.ktpm.Dto.Response.ProductResponse;
+import com.test.ktpm.Model.Request.ProductRequest;
+import com.test.ktpm.Model.Response.ProductResponse;
 import com.test.ktpm.Services.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

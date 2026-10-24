@@ -1,7 +1,7 @@
 package com.test.ktpm.Mapper;
 
-import com.test.ktpm.Dto.Request.ProductRequest;
-import com.test.ktpm.Dto.Response.ProductResponse;
+import com.test.ktpm.Model.Request.ProductRequest;
+import com.test.ktpm.Model.Response.ProductResponse;
 import com.test.ktpm.Entity.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;

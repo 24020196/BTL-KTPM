@@ -1,8 +1,8 @@
 package com.test.ktpm.Services;
 
-import com.test.ktpm.Dto.Request.LoginRequest;
-import com.test.ktpm.Dto.Request.RegisterRequest;
-import com.test.ktpm.Dto.Response.AuthResponse;
+import com.test.ktpm.Model.Request.LoginRequest;
+import com.test.ktpm.Model.Request.RegisterRequest;
+import com.test.ktpm.Model.Response.AuthResponse;
 import com.test.ktpm.Entity.User;
 import com.test.ktpm.Exceptions.BadRequestException;
 import com.test.ktpm.Exceptions.ResourceNotFoundException;
