@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -60,8 +61,10 @@ public class ProductController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Cập nhật sản phẩm thành công"),
             @ApiResponse(responseCode = "400", description = "Dữ liệu nhập vào không hợp lệ"),
-            @ApiResponse(responseCode = "404", description = "Không tìm thấy sản phẩm để cập nhật")
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy sản phẩm để cập nhật"),
+            @ApiResponse(responseCode = "403", description = "Không có quyền truy cập (Cần quyền ROLE_ADMIN)")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ProductResponse> updateProduct(
             @PathVariable Long id,

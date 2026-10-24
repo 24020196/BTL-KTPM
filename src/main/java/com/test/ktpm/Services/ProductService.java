@@ -3,6 +3,7 @@ package com.test.ktpm.Services;
 import com.test.ktpm.Model.Request.ProductRequest;
 import com.test.ktpm.Model.Response.ProductResponse;
 import com.test.ktpm.Entity.Product;
+import com.test.ktpm.Exceptions.BadRequestException;
 import com.test.ktpm.Exceptions.ResourceNotFoundException;
 import com.test.ktpm.Mapper.ProductMapper;
 import com.test.ktpm.Repositories.ProductRepository;
@@ -48,4 +49,22 @@ public class ProductService {
         Product updatedProduct = productRepository.save(product);
         return productMapper.toResponse(updatedProduct);
     }
+
+    @Transactional
+    public void decreaseStock(Product product, int quantity) {
+        if (product.getQuantityInStock() < quantity) {
+            throw new BadRequestException("Sản phẩm '" + product.getProductName() + "' (mã: " + product.getProductCode() +
+                    ") không đủ số lượng tồn kho. Hiện có: " + product.getQuantityInStock() +
+                    ", yêu cầu: " + quantity);
+        }
+        product.setQuantityInStock(product.getQuantityInStock() - quantity);
+        productRepository.save(product);
+    }
+
+    @Transactional
+    public void increaseStock(Product product, int quantity) {
+        product.setQuantityInStock(product.getQuantityInStock() + quantity);
+        productRepository.save(product);
+    }
 }
+

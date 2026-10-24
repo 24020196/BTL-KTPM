@@ -1,6 +1,5 @@
 package com.test.ktpm.Entity;
 
-import com.test.ktpm.Exceptions.BadRequestException;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -36,16 +35,7 @@ public class Product {
     @Builder.Default
     private ProductStatus status = ProductStatus.ACTIVE;
 
-    public void decreaseStock(int quantity) {
-        if (this.quantityInStock < quantity) {
-            throw new BadRequestException("Sản phẩm '" + this.productName + "' (mã: " + this.productCode +
-                    ") không đủ số lượng tồn kho. Hiện có: " + this.quantityInStock +
-                    ", yêu cầu: " + quantity);
-        }
-        this.quantityInStock -= quantity;
-    }
-
-    public void increaseStock(int quantity) {
-        this.quantityInStock += quantity;
-    }
+    @Version
+    @Column(name = "version")
+    private Long version;
 }

@@ -1,6 +1,7 @@
 package com.test.ktpm.Controllers;
 
 import com.test.ktpm.Model.Request.OrderCreateRequest;
+import com.test.ktpm.Model.Request.OrderPatchRequest;
 import com.test.ktpm.Model.Response.OrderResponse;
 import com.test.ktpm.Services.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -57,14 +58,17 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
     }
 
-    @Operation(summary = "Xóa đơn hàng theo mã và hoàn lại số lượng tồn kho")
+    @Operation(summary = "Cập nhật một phần thông tin đơn hàng (Partial Update)")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Xóa đơn hàng thành công"),
-            @ApiResponse(responseCode = "404", description = "Không tìm thấy đơn hàng để xóa")
+            @ApiResponse(responseCode = "200", description = "Cập nhật đơn hàng thành công"),
+            @ApiResponse(responseCode = "400", description = "Không thể cập nhật thông tin khi đơn hàng không ở trạng thái PENDING"),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy đơn hàng")
     })
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteOrder(@PathVariable Long id) {
-        orderService.deleteOrder(id);
-        return ResponseEntity.noContent().build();
+    @PatchMapping("/{id}")
+    public ResponseEntity<OrderResponse> patchOrder(
+            @PathVariable Long id,
+            @Valid @RequestBody OrderPatchRequest request) {
+        return ResponseEntity.ok(orderService.patchOrder(id, request));
     }
 }
+
