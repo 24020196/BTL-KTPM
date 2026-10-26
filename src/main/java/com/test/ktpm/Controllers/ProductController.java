@@ -58,7 +58,7 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProduct);
     }
 
-    @Operation(summary = "Cập nhật thông tin thương mại của sản phẩm")
+    @Operation(summary = "Cập nhật thông tin của sản phẩm")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Cập nhật sản phẩm thành công"),
             @ApiResponse(responseCode = "400", description = "Dữ liệu nhập vào không hợp lệ"),
