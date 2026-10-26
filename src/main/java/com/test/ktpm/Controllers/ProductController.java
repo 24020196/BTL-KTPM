@@ -1,6 +1,7 @@
 package com.test.ktpm.Controllers;
 
 import com.test.ktpm.Model.Request.ProductRequest;
+import com.test.ktpm.Model.Request.ProductUpdateRequest;
 import com.test.ktpm.Model.Response.ProductResponse;
 import com.test.ktpm.Services.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -57,7 +58,7 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProduct);
     }
 
-    @Operation(summary = "Cập nhật thông tin sản phẩm")
+    @Operation(summary = "Cập nhật thông tin của sản phẩm")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Cập nhật sản phẩm thành công"),
             @ApiResponse(responseCode = "400", description = "Dữ liệu nhập vào không hợp lệ"),
@@ -65,10 +66,10 @@ public class ProductController {
             @ApiResponse(responseCode = "403", description = "Không có quyền truy cập (Cần quyền ROLE_ADMIN)")
     })
     @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/{id}")
-    public ResponseEntity<ProductResponse> updateProduct(
+    @PatchMapping("/{id}")
+    public ResponseEntity<ProductResponse> patchProduct(
             @PathVariable Long id,
-            @Valid @RequestBody ProductRequest request) {
-        return ResponseEntity.ok(productService.updateProduct(id, request));
+            @Valid @RequestBody ProductUpdateRequest request) {
+        return ResponseEntity.ok(productService.patchProduct(id, request));
     }
 }
