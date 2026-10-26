@@ -1,6 +1,7 @@
 package com.test.ktpm.Mapper;
 
 import com.test.ktpm.Model.Request.ProductRequest;
+import com.test.ktpm.Model.Request.ProductUpdateRequest;
 import com.test.ktpm.Model.Response.ProductResponse;
 import com.test.ktpm.Entity.Product;
 import org.springframework.data.domain.Page;
@@ -32,16 +33,23 @@ public class ProductMapper {
                 .name(product.getProductName())
                 .qty(product.getQuantityInStock())
                 .price(product.getBuyPrice())
+                .status(product.getStatus())
                 .build();
     }
 
-    public void updateEntity(Product product, ProductRequest request) {
+    public void patchEntity(Product product, ProductUpdateRequest request) {
         if (product == null || request == null) {
             return;
         }
-        product.setProductName(request.getName());
-        product.setQuantityInStock(request.getQty());
-        product.setBuyPrice(request.getPrice());
+        if (request.getName() != null) {
+            product.setProductName(request.getName().trim());
+        }
+        if (request.getPrice() != null) {
+            product.setBuyPrice(request.getPrice());
+        }
+        if (request.getStatus() != null) {
+            product.setStatus(request.getStatus());
+        }
     }
 
     public Page<ProductResponse> toResponsePage(Page<Product> page) {

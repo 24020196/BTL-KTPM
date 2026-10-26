@@ -1,5 +1,6 @@
 package com.test.ktpm.Model.Response;
 
+import com.test.ktpm.Entity.ProductStatus;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -15,4 +16,5 @@ public class ProductResponse {
     private String name;
     private Integer qty;
     private BigDecimal price;
+    private ProductStatus status;
 }
