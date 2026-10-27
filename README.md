@@ -544,9 +544,9 @@ Tổng hợp thống kê 4.476 requests ghi nhận trong 120 giây thử nghiệ
 
 ### 7.4. Phân tích thống kê & Tài nguyên hệ thống (CPU, RAM, RPS, Latency)
 
-Biểu đồ thực nghiệm được kết xuất trực tiếp từ file [benchmark_kaggle_chart.png](benchmark_kaggle_chart.png):
+Biểu đồ thực nghiệm được kết xuất trực tiếp từ file [benchmark_kaggle_chart.png](./docs/images/benchmark_kaggle_chart.png):
 
-![Biểu đồ đo đạc hiệu năng Kaggle](benchmark_kaggle_chart.png)
+![Biểu đồ đo đạc hiệu năng Kaggle](./docs/images/benchmark_kaggle_chart.png)
 
 1. **Về độ trễ (Latency):**
    - **Median Latency:** Chỉ đạt **7 ms** đối với toàn hệ thống; các endpoint đọc (GET) và tạo đơn hàng (POST) dao động từ **5 ms – 7 ms**, phản ánh việc tối ưu kết nối CSDL và xử lý Transaction hiệu quả.
