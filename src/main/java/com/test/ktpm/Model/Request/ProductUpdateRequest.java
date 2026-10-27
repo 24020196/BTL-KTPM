@@ -21,4 +21,5 @@ public class ProductUpdateRequest {
     private BigDecimal price;
 
     private ProductStatus status;
+    // khong co truong qty trong phan update de xu ly ghi de ton kho
 }

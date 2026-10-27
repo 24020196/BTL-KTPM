@@ -5,11 +5,13 @@ import com.test.ktpm.Model.Response.CustomerResponse;
 import com.test.ktpm.Model.Response.OrderResponse;
 import com.test.ktpm.Entity.Customer;
 import com.test.ktpm.Entity.Order;
+import com.test.ktpm.Entity.User;
 import com.test.ktpm.Exceptions.ResourceNotFoundException;
 import com.test.ktpm.Mapper.CustomerMapper;
 import com.test.ktpm.Mapper.OrderMapper;
 import com.test.ktpm.Repositories.CustomerRepository;
 import com.test.ktpm.Repositories.OrderRepository;
+import com.test.ktpm.Repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +26,7 @@ public class CustomerService {
 
     private final CustomerRepository customerRepository;
     private final OrderRepository orderRepository;
+    private final UserRepository userRepository;
     private final CustomerMapper customerMapper;
     private final OrderMapper orderMapper;
 
@@ -42,7 +45,14 @@ public class CustomerService {
 
     @Transactional
     public CustomerResponse createCustomer(CustomerRequest request) {
+        User user = null;
+        if (request.getUserId() != null) {
+            user = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với mã: " + request.getUserId()));
+        }
+
         Customer customer = Customer.builder()
+                .user(user)
                 .customerName(request.getCustomerName())
                 .phone(request.getPhone())
                 .build();
@@ -55,6 +65,14 @@ public class CustomerService {
     public CustomerResponse updateCustomer(Long id, CustomerRequest request) {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách hàng với mã: " + id));
+
+        if (request.getUserId() != null) {
+            User user = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với mã: " + request.getUserId()));
+            customer.setUser(user);
+        } else {
+            customer.setUser(null);
+        }
 
         customer.setCustomerName(request.getCustomerName());
         customer.setPhone(request.getPhone());

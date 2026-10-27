@@ -52,7 +52,7 @@ public class CustomerController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Tạo mới khách hàng thành công"),
             @ApiResponse(responseCode = "400", description = "Dữ liệu nhập vào không hợp lệ"),
-            @ApiResponse(responseCode = "404", description = "Không tìm thấy User hoặc Nhân viên phụ trách")
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy User tương ứng")
     })
     @PostMapping
     public ResponseEntity<CustomerResponse> createCustomer(@Valid @RequestBody CustomerRequest request) {

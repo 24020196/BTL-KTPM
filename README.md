@@ -107,7 +107,7 @@ Khi chuyển sang `CANCELLED` (từ `PENDING` hoặc `SHIPPING`), hệ thống t
 
 ## PHẦN 2: ĐẶC TẢ CÁC API (RESTFUL API SPECIFICATION)
 
-- **Base URL:** `http://localhost:3000/api/v1`
+- **Base URL:** `http://localhost:3000/v3/api-docs`
 - **Định dạng dữ liệu:** JSON
 - **Cơ chế xác thực:** JWT Token (truyền qua Header `Authorization: Bearer <token>` đối với các endpoint yêu cầu đăng nhập)
 - **Tài liệu tương tác (Swagger UI):** `http://localhost:3000/swagger-ui/index.html`
