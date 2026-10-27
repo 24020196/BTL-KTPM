@@ -9,10 +9,7 @@ import lombok.*;
 @Builder
 public class CustomerResponse {
     private Long customerNumber;
+    private Long userId;
     private String customerName;
     private String phone;
-    private String address;
-    private Long userId;
-    private Long salesRepEmployeeNumber;
-    private String salesRepEmployeeName;
 }
