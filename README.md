@@ -8,6 +8,7 @@
 - [Phần 4: Những điểm gợi ý cải tiến ở Phase 2](#phần-4-những-điểm-gợi-ý-cải-tiến-ở-phase-2)
 - [Phần 5: Tổ chức mã nguồn](#phần-5-tổ-chức-mã-nguồn)
 - [Phần 6: Cài đặt và triển khai (Deploy)](#phần-6-cài-đặt-và-triển-khai-deploy)
+- [Phần 7: Thử nghiệm tải và đo đạc hiệu năng trên Kaggle (Benchmark & Load Testing)](#phần-7-thử-nghiệm-tải-và-đo-đạc-hiệu-năng-trên-kaggle-benchmark--load-testing)
 
 ---
 
@@ -62,13 +63,45 @@ Hệ thống cung cấp nền tảng quản lý kho hàng, quan hệ khách hàn
 
 Đơn hàng tuân thủ nghiêm ngặt luồng trạng thái một chiều (không cho phép lùi trạng thái):
 
-| Trạng thái hiện tại | Được phép chuyển sang |
-| :--- | :--- |
-| `PENDING` | `SHIPPING` hoặc `CANCELLED` |
-| `SHIPPING` | `COMPLETED` hoặc `CANCELLED` |
-| `COMPLETED` / `CANCELLED` | Khóa hoàn toàn, chặn mọi thao tác thay đổi trạng thái |
+| Trạng thái hiện tại | Được phép chuyển sang | Hành vi nghiệp vụ chi tiết |
+| :--- | :--- | :--- |
+| `PENDING` | `SHIPPING` hoặc `CANCELLED` | Khởi tạo qua `POST /orders` (đã trừ kho & snapshot giá). Cho phép chuyển sang `SHIPPING` (xuất kho giao) hoặc `CANCELLED` (Transaction: hoàn trả tồn kho). |
+| `SHIPPING` | `COMPLETED` hoặc `CANCELLED` | Cho phép chuyển sang `COMPLETED` (giao thành công - chốt đơn) hoặc `CANCELLED` (Transaction: hoàn trả tồn kho, kể cả khi SP đã `INACTIVE`). |
+| `COMPLETED` / `CANCELLED` | Khóa hoàn toàn | **TRẠNG THÁI KHÓA CỨNG (TERMINAL STATES):** Chặn tuyệt đối mọi request đổi trạng thái để bảo vệ doanh thu và chống lỗi hoàn kho 2 lần (Double Restock). |
 
 Khi chuyển sang `CANCELLED` (từ `PENDING` hoặc `SHIPPING`), hệ thống thực thi Transaction: cập nhật trạng thái đơn sang `CANCELLED` và tự động cộng hoàn trả số lượng từng mặt hàng trong đơn về lại tồn kho của sản phẩm tương ứng (ngay cả khi sản phẩm đó hiện đã chuyển sang `INACTIVE`).
+
+#### **Sơ đồ máy trạng thái đơn hàng (Order State Machine):**
+
+```text
+       tạo đơn (POST /orders)
+       [Khấu trừ kho & snapshot giá]
+               |
+               v
+       +---------------+      xuất kho (PATCH status = SHIPPING)       +---------------+
+       |               | --------------------------------------------> |               |
+       |    PENDING    |                                               |   SHIPPING    |
+       |               | -----\                                 -----> |               |
+       +---------------+      |                                 |      +---------------+
+                              |                                 |              |
+                              | hủy đơn (PATCH CANCELLED)       |              | giao thành công
+                              | [Cộng hoàn trả tồn kho]         |              | (PATCH COMPLETED)
+                              v                                 |              v
+                       +---------------+                        |      +---------------+
+                       |               |                        |      |               |
+                       |   CANCELLED   | <----------------------/      |   COMPLETED   |
+                       |               |   hủy đơn (PATCH CANCELLED)   |               |
+                       +---------------+   [Cộng hoàn trả tồn kho]     +---------------+
+                               |                                               |
+                               v                                               v
+                        [Khóa hoàn toàn]                                [Khóa hoàn toàn]
+                 Chống hoàn kho 2 lần (Double Restock)                  Bảo vệ doanh thu
+```
+
+> **Lưu ý:**
+> - Chỉ có thể chuyển sang `SHIPPING` hoặc `CANCELLED` khi đơn hàng đang ở trạng thái `PENDING`.
+> - Chỉ có thể chuyển sang `COMPLETED` hoặc `CANCELLED` khi đơn hàng đang ở trạng thái `SHIPPING`.
+> - Khi đơn hàng đã ở trạng thái `COMPLETED` hoặc `CANCELLED`, hệ thống **khóa hoàn toàn**, chặn tuyệt đối mọi request thay đổi trạng thái tiếp theo.
 
 ---
 
@@ -460,3 +493,75 @@ Lợi ích: image cuối nhẹ, không chứa mã nguồn và công cụ build; 
 1. Mở Swagger UI: `http://localhost:3000/swagger-ui/index.html`
 2. Gọi `POST /api/v1/auth/register` để tạo tài khoản, sau đó `POST /api/v1/auth/login` để lấy token.
 3. Bấm nút **Authorize** trên Swagger, nhập token để gọi các API yêu cầu đăng nhập.
+
+---
+
+## PHẦN 7: THỬ NGHIỆM TẢI VÀ ĐO ĐẠC HIỆU NĂNG TRÊN KAGGLE (BENCHMARK & LOAD TESTING)
+
+Toàn bộ quy trình kiểm thử tải (Stress / Load Testing) và giám sát tài nguyên phần cứng được thực nghiệm tự động trên môi trường **Kaggle Notebook** (File: [`benchmark-load-testing-ktpm.ipynb`](file:///e:/BTL-KTPM/benchmark-load-testing-ktpm.ipynb)).
+
+### 7.1. Môi trường và công cụ thử nghiệm
+
+- **Hạ tầng thực thi:** Kaggle Linux Environment (Ubuntu 24.04 x86_64, 4 vCPU, 30GB RAM, không GPU).
+- **Runtime & Database:**
+  - OpenJDK 21 (`21.0.12.1-Ubuntu`).
+  - MySQL Server 8.0 (`8.0.46`).
+  - JVM Memory Tuning: `-Xms512m -Xmx1536m`.
+- **Framework kiểm thử:** **Locust** (Headless mode) kết hợp thư viện `psutil` để thu thập tài nguyên hệ thống (CPU & RAM) mỗi chu kỳ 1.0 giây.
+- **Tham số tải:**
+  - **Số lượng Virtual Users (Concurrency):** `80 users`.
+  - **Tốc độ sinh tải (Spawn rate):** `4 users/giây`.
+  - **Thời gian chạy thử nghiệm:** `2 phút` (120 giây).
+
+### 7.2. Kịch bản kiểm thử (Customer Journey & Stress Scenarios)
+
+Mô phỏng hành vi thực tế của khách hàng thông qua luồng tác vụ tuần tự (`SequentialTaskSet`), bao phủ đầy đủ các cơ chế xử lý đồng thời đã thiết kế ở Phase 1:
+
+1. **Xác thực (Auth):** Tự động đăng ký và đăng nhập nhận JWT Token (mô phỏng người dùng mới).
+2. **Tra cứu danh mục sản phẩm (`01_GET_products`, `02_GET_product_detail`):** Kiểm tra thông lượng đọc (Read Throughput) và phân trang.
+3. **Tra cứu khách hàng & đơn hàng (`03_GET_customers`, `04_GET_orders`, `07_GET_order_detail`):** Đo đạc hiệu năng query qua JPA/Hibernate.
+4. **Tạo đơn hàng cạnh tranh (`05_POST_orders_lock`):** Nhiều luồng cùng đặt mua sản phẩm với cơ chế `@Lock(PESSIMISTIC_WRITE)` (`SELECT ... FOR UPDATE`) để kiểm tra khả năng khóa dòng và chống bán vượt tồn kho (Overselling).
+5. **Kiểm tra chống Deadlock (`06_POST_orders_deadlock_check`):** Gửi các giỏ hàng chứa nhiều sản phẩm với thứ tự xáo trộn ngẫu nhiên để xác thực cơ chế gộp và sắp xếp `productId` tăng dần trước khi khóa dòng.
+6. **Hủy đơn hoàn kho (`08_PATCH_order_cancel`):** Kiểm tra cập nhật trạng thái một chiều và transaction hoàn trả tồn kho.
+
+### 7.3. Kết quả đo đạc định lượng (Locust Statistics)
+
+Tổng hợp thống kê 4.476 requests ghi nhận trong 120 giây thử nghiệm:
+
+| Method | Endpoint / Tác vụ | Request Count | Failure Count | Median Latency (ms) | P95 Latency (ms) | Throughput (RPS) | Đánh giá |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| `POST` | `00_POST_login` | 53 | 0 | 160 ms | 200 ms | 0.45 req/s | Xử lý kiểm tra mật khẩu BCrypt & sinh JWT |
+| `POST` | `00_POST_register` | 53 | 0 | 190 ms | 260 ms | 0.45 req/s | Mã hóa mật khẩu một chiều BCrypt |
+| `GET` | `01_GET_products` | 728 | 0 | 7 ms | 19 ms | 6.15 req/s | Truy vấn danh mục kèm phân trang |
+| `GET` | `02_GET_product_detail` | 712 | 0 | 6 ms | 13 ms | 6.02 req/s | Truy vấn chi tiết theo ID |
+| `GET` | `03_GET_customers` | 699 | 0 | 7 ms | 14 ms | 5.91 req/s | Truy vấn danh sách khách hàng |
+| `GET` | `04_GET_orders` | 691 | 0 | 7 ms | 13 ms | 5.84 req/s | Truy vấn danh sách đơn hàng |
+| `POST` | `05_POST_orders_lock` | 432 | 0 | 5 ms | 10 ms | 3.65 req/s | Khóa dòng trừ kho thành công 100% |
+| `POST` | `06_POST_orders_deadlock_check` | 288 | 0 | 6 ms | 10 ms | 2.43 req/s | Không phát sinh bất kỳ Deadlock nào |
+| `GET` | `07_GET_order_detail` | 658 | 0 | 7 ms | 10 ms | 5.56 req/s | Đọc chi tiết đơn & order_details |
+| `GET` | `Swagger & Docs` | 162 | 0 | 4 - 5 ms | 12 - 20 ms | 1.37 req/s | Tài liệu API |
+| **Tổng** | **Aggregated** | **4.476** | **0 (0.0%)** | **7 ms** | **18 ms** | **37.82 req/s** | **Hệ thống hoạt động ổn định** |
+
+### 7.4. Phân tích thống kê & Tài nguyên hệ thống (CPU, RAM, RPS, Latency)
+
+Biểu đồ thực nghiệm được kết xuất trực tiếp từ file [benchmark_kaggle_chart.png](benchmark_kaggle_chart.png):
+
+![Biểu đồ đo đạc hiệu năng Kaggle](benchmark_kaggle_chart.png)
+
+1. **Về độ trễ (Latency):**
+   - **Median Latency:** Chỉ đạt **7 ms** đối với toàn hệ thống; các endpoint đọc (GET) và tạo đơn hàng (POST) dao động từ **5 ms – 7 ms**, phản ánh việc tối ưu kết nối CSDL và xử lý Transaction hiệu quả.
+   - **P95 Latency:** Đạt **18 ms**, chứng minh hệ thống duy trì độ trễ cực thấp ngay cả khi số lượng người dùng đồng thời tăng lên 80 VUs.
+   - Riêng hai endpoint `00_POST_register` và `00_POST_login` có P95 lần lượt là **260 ms** và **200 ms** do thuật toán băm bảo mật BCrypt cố tình tiêu tốn chu kỳ CPU để chống tấn công Brute-force.
+
+2. **Về thông lượng (Throughput / RPS):**
+   - Throughput tổng đạt trung bình **37.82 requests/giây** (đỉnh điểm đạt xấp xỉ 45 RPS trong giai đoạn sustain).
+   - Tỉ lệ lỗi ghi nhận là **0.0% (0 / 4.476 requests bị fail)**. Toàn bộ các transaction khóa hàng và cập nhật đơn đều hoàn tất trơn tru.
+
+3. **Về cơ chế xử lý Concurrency (Khóa dòng & Deadlock):**
+   - **Chống Overselling (`05_POST_orders_lock`):** 432 request đặt hàng đồng thời với `PESSIMISTIC_WRITE` hoàn tất mà không gây nghẽn kết nối (P95 chỉ 10 ms).
+   - **Chống Deadlock (`06_POST_orders_deadlock_check`):** 288 request đặt hàng nhiều món xáo trộn thứ tự không tạo ra bất kỳ trường hợp `DeadlockVictimException` hoặc khóa chéo nào nhờ thuật toán sắp xếp thứ tự ID trước khi khóa.
+
+4. **Về mức độ tiêu thụ tài nguyên (CPU & RAM):**
+   - **CPU:** Mức sử dụng CPU tăng nhẹ trong pha ramp-up và ổn định ở mức an toàn (~25% - 40%), không bị bão hòa (100% CPU spike).
+   - **RAM:** Bộ nhớ heap JVM duy trì ổn định xung quanh ngưỡng ~1.1GB - 1.3GB (nằm trong giới hạn `-Xmx1536m`), cơ chế Garbage Collection (G1GC trên Java 21) thu hồi bộ nhớ hiệu quả, không xuất hiện hiện tượng rò rỉ bộ nhớ (Memory Leak).
+
