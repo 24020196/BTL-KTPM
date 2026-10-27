@@ -73,21 +73,35 @@ Khi chuyển sang `CANCELLED` (từ `PENDING` hoặc `SHIPPING`), hệ thống t
 
 #### **Sơ đồ máy trạng thái đơn hàng (Order State Machine):**
 
-![Order State Machine](file:///e:/BTL-KTPM/docs/images/order_state_machine.png)
-
-```mermaid
-stateDiagram-v2
-    [*] --> PENDING: POST /orders thành công\n[Đã trừ tồn kho & Lưu snapshot giá]
-    
-    PENDING --> SHIPPING: PATCH /orders/{id} [status = SHIPPING]\n[Xuất kho giao hàng]
-    PENDING --> CANCELLED: PATCH /orders/{id} [status = CANCELLED]\n[Transaction: Cộng hoàn trả số lượng vào kho]
-    
-    SHIPPING --> COMPLETED: PATCH /orders/{id} [status = COMPLETED]\n[Giao thành công - Chốt đơn]
-    SHIPPING --> CANCELLED: PATCH /orders/{id} [status = CANCELLED]\n[Transaction: Hoàn kho (kể cả SP INACTIVE)]
-    
-    COMPLETED --> [*]: TRẠNG THÁI KHÓA CỨNG (TERMINAL)\nChặn tuyệt đối đổi trạng thái\nBảo vệ doanh thu
-    CANCELLED --> [*]: TRẠNG THÁI KHÓA CỨNG (TERMINAL)\nChống lỗi hoàn kho 2 lần (Double Restock)
+```text
+       tạo đơn (POST /orders)
+       [Khấu trừ kho & snapshot giá]
+               |
+               v
+       +---------------+      xuất kho (PATCH status = SHIPPING)       +---------------+
+       |               | --------------------------------------------> |               |
+       |    PENDING    |                                               |   SHIPPING    |
+       |               | -----\                                 -----> |               |
+       +---------------+      |                                 |      +---------------+
+                              |                                 |              |
+                              | hủy đơn (PATCH CANCELLED)       |              | giao thành công
+                              | [Cộng hoàn trả tồn kho]         |              | (PATCH COMPLETED)
+                              v                                 |              v
+                       +---------------+                        |      +---------------+
+                       |               |                        |      |               |
+                       |   CANCELLED   | <----------------------/      |   COMPLETED   |
+                       |               |   hủy đơn (PATCH CANCELLED)   |               |
+                       +---------------+   [Cộng hoàn trả tồn kho]     +---------------+
+                               |                                               |
+                               v                                               v
+                        [Khóa hoàn toàn]                                [Khóa hoàn toàn]
+                 Chống hoàn kho 2 lần (Double Restock)                  Bảo vệ doanh thu
 ```
+
+> **Lưu ý:**
+> - Chỉ có thể chuyển sang `SHIPPING` hoặc `CANCELLED` khi đơn hàng đang ở trạng thái `PENDING`.
+> - Chỉ có thể chuyển sang `COMPLETED` hoặc `CANCELLED` khi đơn hàng đang ở trạng thái `SHIPPING`.
+> - Khi đơn hàng đã ở trạng thái `COMPLETED` hoặc `CANCELLED`, hệ thống **khóa hoàn toàn**, chặn tuyệt đối mọi request thay đổi trạng thái tiếp theo.
 
 ---
 
@@ -530,7 +544,9 @@ Tổng hợp thống kê 4.476 requests ghi nhận trong 120 giây thử nghiệ
 
 ### 7.4. Phân tích thống kê & Tài nguyên hệ thống (CPU, RAM, RPS, Latency)
 
-Biểu đồ thực nghiệm được kết xuất trực tiếp từ file [`benchmark_kaggle_chart.png`](file:///e:/BTL-KTPM/benchmark_kaggle_chart.png):
+Biểu đồ thực nghiệm được kết xuất trực tiếp từ file [benchmark_kaggle_chart.png](benchmark_kaggle_chart.png):
+
+![Biểu đồ đo đạc hiệu năng Kaggle](benchmark_kaggle_chart.png)
 
 1. **Về độ trễ (Latency):**
    - **Median Latency:** Chỉ đạt **7 ms** đối với toàn hệ thống; các endpoint đọc (GET) và tạo đơn hàng (POST) dao động từ **5 ms – 7 ms**, phản ánh việc tối ưu kết nối CSDL và xử lý Transaction hiệu quả.
