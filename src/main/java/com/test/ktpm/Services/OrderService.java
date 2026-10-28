@@ -160,7 +160,7 @@ public class OrderService {
 
         boolean isPending = order.getStatus() == OrderStatus.PENDING;
 
-        // 3. Nếu không phải PENDING (ví dụ: SHIPPING) → chỉ cho phép cập nhật status
+        // 3. Nếu không phải PENDING (ví dụ: SHIPPING): chỉ cho phép cập nhật status
         if (!isPending) {
             if (request.getItems() != null && !request.getItems().isEmpty()) {
                 throw new BadRequestException(
@@ -172,7 +172,7 @@ public class OrderService {
             return orderMapper.toResponse(orderRepository.save(order));
         }
 
-        // 4. PENDING → cho phép cập nhật status + items
+        // 4. PENDING: cho phép cập nhật status + items
         if (request.getStatus() != null) {
             order.setStatus(request.getStatus());
         }

@@ -107,7 +107,7 @@ Khi chuyển sang `CANCELLED` (từ `PENDING` hoặc `SHIPPING`), hệ thống t
 
 ## PHẦN 2: ĐẶC TẢ CÁC API (RESTFUL API SPECIFICATION)
 
-- **Base URL:** `http://localhost:3000/v3/api-docs`
+- **Base URL:** `http://localhost:3000/api/v1`
 - **Định dạng dữ liệu:** JSON
 - **Cơ chế xác thực:** JWT Token (truyền qua Header `Authorization: Bearer <token>` đối với các endpoint yêu cầu đăng nhập)
 - **Tài liệu tương tác (Swagger UI):** `http://localhost:3000/swagger-ui/index.html`
@@ -116,45 +116,45 @@ Khi chuyển sang `CANCELLED` (từ `PENDING` hoặc `SHIPPING`), hệ thống t
 
 Mục tiêu: Quản lý đăng ký, đăng nhập cấp phát Token và quản trị tài khoản hệ thống.
 
-| Method | Endpoint | Mô tả chức năng | Request Body / Params | Response | Quy tắc xử lý chính |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| POST | `/auth/register` | Đăng ký tài khoản mới | `RegisterRequest` (username, password) | 201 Created - Message thành công | Kiểm tra trùng username; mã hóa password. |
-| POST | `/auth/login` | Đăng nhập hệ thống | `LoginRequest` (username, password) | 200 OK - Chuỗi JWT Token | Đối chiếu mật khẩu; sinh JWT nếu hợp lệ. |
-| GET | `/users` | Lấy danh sách tài khoản | None | 200 OK - `List<UserDto>` | Chỉ dành cho quyền ADMIN; ẩn trường mật khẩu. |
+| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Request Body / Params | Response | Quy tắc xử lý chính |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| POST | `/auth/register` | Công khai | Đăng ký tài khoản mới | `RegisterRequest` (username, password) | 201 Created - Message thành công | Kiểm tra trùng username; mã hóa password. |
+| POST | `/auth/login` | Công khai | Đăng nhập hệ thống | `LoginRequest` (username, password) | 200 OK - Chuỗi JWT Token | Đối chiếu mật khẩu; sinh JWT nếu hợp lệ. |
+| GET | `/users` | ADMIN | Lấy danh sách tài khoản | None | 200 OK - `List<UserDto>` | Chỉ dành cho quyền ADMIN; ẩn trường mật khẩu. |
 
 ### 2.2. Phân hệ Khách hàng (Customers)
 
 Mục tiêu: Quản lý hồ sơ thông tin khách hàng và tra cứu lịch sử mua sắm.
 
-| Method | Endpoint | Mô tả chức năng | Request Body / Params | Response | Quy tắc xử lý chính |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| GET | `/customers` | Lấy danh sách khách hàng | Query: `?page=0&size=10` | 200 OK - `Page<CustomerDto>` | Truy vấn danh sách khách hàng có phân trang. |
-| GET | `/customers/{id}` | Xem thông tin 1 khách hàng | Path: `id` | 200 OK - `CustomerDto` | Xem chi tiết liên hệ và nhân viên Sales Rep phụ trách. |
-| POST | `/customers` | Tạo mới hồ sơ khách hàng | `CustomerRequest` | 201 Created - `CustomerDto` | Lưu thông tin khách hàng và gán nhân viên chăm sóc. |
-| PUT | `/customers/{id}` | Cập nhật hồ sơ khách hàng | Path: `id`; Body: `CustomerRequest` | 200 OK - `CustomerDto` | Cập nhật thông tin hoặc đổi nhân viên chăm sóc. |
-| GET | `/customers/{id}/orders` | Xem lịch sử đơn hàng của KH | Path: `id` | 200 OK - `List<OrderResponseDto>` | Liệt kê tất cả các đơn hàng khách hàng `{id}` đã đặt. |
+| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Request Body / Params | Response | Quy tắc xử lý chính |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| GET | `/customers` | ADMIN, USER | Lấy danh sách khách hàng | Query: `?page=0&size=10` | 200 OK - `Page<CustomerDto>` | Truy vấn danh sách khách hàng có phân trang. |
+| GET | `/customers/{id}` | ADMIN, USER | Xem thông tin 1 khách hàng | Path: `id` | 200 OK - `CustomerDto` | Xem chi tiết liên hệ và nhân viên Sales Rep phụ trách. |
+| POST | `/customers` | ADMIN, USER | Tạo mới hồ sơ khách hàng | `CustomerRequest` | 201 Created - `CustomerDto` | Lưu thông tin khách hàng và gán nhân viên chăm sóc. |
+| PUT | `/customers/{id}` | ADMIN, USER | Cập nhật hồ sơ khách hàng | Path: `id`; Body: `CustomerRequest` | 200 OK - `CustomerDto` | Cập nhật thông tin hoặc đổi nhân viên chăm sóc. |
+| GET | `/customers/{id}/orders` | ADMIN, USER | Xem lịch sử đơn hàng của KH | Path: `id` | 200 OK - `List<OrderResponseDto>` | Liệt kê tất cả các đơn hàng khách hàng `{id}` đã đặt. |
 
 ### 2.3. Phân hệ Sản phẩm (Products)
 
 Mục tiêu: Quản lý danh mục hàng hóa, niêm yết giá và kiểm soát số lượng tồn kho.
 
-| Method | Endpoint | Mô tả chức năng | Request Body / Params | Response | Quy tắc xử lý chính |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| GET | `/products` | Lấy danh sách sản phẩm | Query: `?page=0&size=10` | 200 OK - `List<ProductDto>` | Lọc theo tên sản phẩm, khoảng giá hoặc trạng thái kho. |
-| GET | `/products/{id}` | Xem chi tiết sản phẩm | Path: `id` | 200 OK - `ProductDto` | Truy xuất tên, đơn giá hiện tại và số lượng tồn kho. |
-| POST | `/products` | Thêm mới sản phẩm và sửa số lượng | `ProductRequest` (name, qty, price) | 201 Created - `ProductDto` | Ràng buộc số lượng và đơn giá. Xác thực người dùng admin. |
-| PATCH | `/products/{id}` | Cập nhật thông tin thương mại | Path: `id`; Body: `ProductUpdateRequest` (name, price, status) | 200 OK - `ProductDto` | Cập nhật thông tin sản phẩm. |
+| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Request Body / Params | Response | Quy tắc xử lý chính |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| GET | `/products` | ADMIN, USER | Lấy danh sách sản phẩm | Query: `?page=0&size=10` | 200 OK - `List<ProductDto>` | Lọc theo tên sản phẩm, khoảng giá hoặc trạng thái kho. |
+| GET | `/products/{id}` | ADMIN, USER | Xem chi tiết sản phẩm | Path: `id` | 200 OK - `ProductDto` | Truy xuất tên, đơn giá hiện tại và số lượng tồn kho. |
+| POST | `/products` | ADMIN | Thêm mới sản phẩm và sửa số lượng | `ProductRequest` (name, qty, price) | 201 Created - `ProductDto` | Ràng buộc số lượng và đơn giá. Xác thực người dùng admin. |
+| PATCH | `/products/{id}` | ADMIN | Cập nhật thông tin thương mại | Path: `id`; Body: `ProductUpdateRequest` (name, price, status) | 200 OK - `ProductDto` | Cập nhật thông tin sản phẩm. |
 
 ### 2.4. Phân hệ Đơn hàng (Orders & Order Details)
 
 Mục tiêu: Xử lý giao dịch mua bán trọn gói (gộp chung thông tin Order và Order Details).
 
-| Method | Endpoint | Mô tả chức năng | Request Body / Params | Response | Quy tắc xử lý chính |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| GET | `/orders` | Lấy danh sách đơn hàng | Query: `?page=0&size=10` | 200 OK - `List<OrderSummaryDto>` | Hiển thị thông tin tóm tắt các đơn hàng (không kèm danh sách sản phẩm). |
-| GET | `/orders/{id}` | Xem chi tiết đơn hàng | Path: `id` | 200 OK - `OrderDetailResponse` | Trả về thông tin chung kèm danh sách sản phẩm (`order_details`). |
-| POST | `/orders` | Tạo đơn hàng mới | `OrderRequest` (customerId, employeeId, `List<Items>`) | 201 Created - `OrderDetailResponse` | Chạy trong 1 Transaction: kiểm tra đủ tồn kho -> tạo đơn & chi tiết đơn -> trừ kho. |
-| PATCH | `/orders/{id}` | Cập nhật trạng thái đơn hàng | Path: `id`; Body: `OrderRequest` | 200 OK - `OrderDetailResponse` | Cập nhật trạng thái một chiều (PENDING -> SHIPPING -> COMPLETED). Nếu chuyển sang CANCELLED từ PENDING/SHIPPING: chạy Transaction đổi trạng thái và cộng hoàn kho theo `order_details`. Chặn tuyệt đối nếu đơn đã COMPLETED hoặc CANCELLED. Cho phép thay đổi số lượng sản phẩm khi đơn hàng ở trạng thái PENDING. |
+| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Request Body / Params | Response | Quy tắc xử lý chính |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| GET | `/orders` | ADMIN, USER | Lấy danh sách đơn hàng | Query: `?page=0&size=10` | 200 OK - `List<OrderSummaryDto>` | Hiển thị thông tin tóm tắt các đơn hàng (không kèm danh sách sản phẩm). |
+| GET | `/orders/{id}` | ADMIN, USER | Xem chi tiết đơn hàng | Path: `id` | 200 OK - `OrderDetailResponse` | Trả về thông tin chung kèm danh sách sản phẩm (`order_details`). |
+| POST | `/orders` | ADMIN, USER | Tạo đơn hàng mới | `OrderRequest` (customerId, employeeId, `List<Items>`) | 201 Created - `OrderDetailResponse` | Chạy trong 1 Transaction: kiểm tra đủ tồn kho -> tạo đơn & chi tiết đơn -> trừ kho. |
+| PATCH | `/orders/{id}` | ADMIN, USER | Cập nhật trạng thái đơn hàng | Path: `id`; Body: `OrderRequest` | 200 OK - `OrderDetailResponse` | Cập nhật trạng thái một chiều (PENDING -> SHIPPING -> COMPLETED). Nếu chuyển sang CANCELLED từ PENDING/SHIPPING: chạy Transaction đổi trạng thái và cộng hoàn kho theo `order_details`. Chặn tuyệt đối nếu đơn đã COMPLETED hoặc CANCELLED. Cho phép thay đổi số lượng sản phẩm khi đơn hàng ở trạng thái PENDING. |
 
 ### 2.5. Định dạng phản hồi lỗi
 
@@ -386,10 +386,7 @@ BTL-KTPM/
 
 ### 6.1. Yêu cầu môi trường
 
-| Cách triển khai | Yêu cầu |
-| :--- | :--- |
-| Docker Compose (khuyến nghị) | Docker Desktop (hoặc Docker Engine + Docker Compose v2) |
-| Chạy trực tiếp | JDK 21, MySQL 8.0 (hoặc dùng MySQL qua Docker) |
+- **Docker Desktop** (trên Windows / macOS) hoặc **Docker Engine** kèm **Docker Compose v2** (trên Linux).
 
 ### 6.2. Cấu hình biến môi trường
 
@@ -412,7 +409,7 @@ Copy-Item .env.example .env
 | `JWT_SECRET` | Khóa ký JWT (chuỗi hex tối thiểu 256 bit) | Có giá trị mặc định trong `application.yaml` |
 | `JWT_EXPIRATION` | Thời hạn token (mili giây) | `86400000` (24 giờ) |
 
-### 6.3. Cách 1: Triển khai bằng Docker Compose
+### 6.3. Triển khai bằng Docker Compose
 
 ```bash
 # Build image và khởi chạy toàn bộ hệ thống (MySQL + App)
@@ -448,36 +445,7 @@ Trình tự khởi động tự động:
 
 Dữ liệu MySQL được lưu trong named volume `mysql-data`, không bị mất khi dừng hoặc tạo lại container.
 
-### 6.4. Cách 2: Chạy trực tiếp trên máy (phục vụ phát triển, debug)
-
-**Bước 1:** Khởi động MySQL (dùng Docker cho nhanh):
-
-```bash
-docker compose up -d mysql
-```
-
-**Bước 2:** Khai báo biến môi trường (Windows PowerShell):
-
-```powershell
-$env:SERVER_PORT="3000"
-$env:SPRING_DATASOURCE_URL="jdbc:mysql://localhost:3308/KTPM?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
-$env:SPRING_DATASOURCE_USERNAME="root"
-$env:SPRING_DATASOURCE_PASSWORD="12345678"
-```
-
-**Bước 3:** Chạy ứng dụng:
-
-```bash
-# Windows
-.\mvnw.cmd spring-boot:run
-
-# Linux / macOS
-./mvnw spring-boot:run
-```
-
-Lưu ý: nếu gặp lỗi `release version 21 not supported`, JDK trên máy đang thấp hơn 21. Cần cài JDK 21 và trỏ biến `JAVA_HOME` tới JDK này, hoặc chuyển sang Cách 1.
-
-### 6.5. Kiến trúc Docker image
+### 6.4. Kiến trúc Docker image
 
 `Dockerfile` sử dụng kỹ thuật multi-stage build:
 
@@ -488,7 +456,7 @@ Lưu ý: nếu gặp lỗi `release version 21 not supported`, JDK trên máy đ
 
 Lợi ích: image cuối nhẹ, không chứa mã nguồn và công cụ build; khi chỉ sửa code Java, Docker không phải tải lại dependency.
 
-### 6.6. Kiểm tra sau khi triển khai
+### 6.5. Kiểm tra sau khi triển khai
 
 1. Mở Swagger UI: `http://localhost:3000/swagger-ui/index.html`
 2. Gọi `POST /api/v1/auth/register` để tạo tài khoản, sau đó `POST /api/v1/auth/login` để lấy token.
