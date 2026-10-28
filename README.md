@@ -498,7 +498,7 @@ Lợi ích: image cuối nhẹ, không chứa mã nguồn và công cụ build; 
 
 ## PHẦN 7: THỬ NGHIỆM TẢI VÀ ĐO ĐẠC HIỆU NĂNG TRÊN KAGGLE (BENCHMARK & LOAD TESTING)
 
-Toàn bộ quy trình kiểm thử tải (Stress / Load Testing) và giám sát tài nguyên phần cứng được thực nghiệm tự động trên môi trường **Kaggle Notebook** (File: [`benchmark-load-testing-ktpm.ipynb`](file:///e:/BTL-KTPM/benchmark-load-testing-ktpm.ipynb)).
+Toàn bộ quy trình kiểm thử tải (Stress / Load Testing) và giám sát tài nguyên phần cứng được thực nghiệm tự động trên môi trường **Kaggle Notebook** (File: [`benchmark-load-testing-ktpm.ipynb`](./benchmark-load-testing-ktpm.ipynb)).
 
 ### 7.1. Môi trường và công cụ thử nghiệm
 
@@ -520,27 +520,42 @@ Mô phỏng hành vi thực tế của khách hàng thông qua luồng tác vụ
 1. **Xác thực (Auth):** Tự động đăng ký và đăng nhập nhận JWT Token (mô phỏng người dùng mới).
 2. **Tra cứu danh mục sản phẩm (`01_GET_products`, `02_GET_product_detail`):** Kiểm tra thông lượng đọc (Read Throughput) và phân trang.
 3. **Tra cứu khách hàng & đơn hàng (`03_GET_customers`, `04_GET_orders`, `07_GET_order_detail`):** Đo đạc hiệu năng query qua JPA/Hibernate.
-4. **Tạo đơn hàng cạnh tranh (`05_POST_orders_lock`):** Nhiều luồng cùng đặt mua sản phẩm với cơ chế `@Lock(PESSIMISTIC_WRITE)` (`SELECT ... FOR UPDATE`) để kiểm tra khả năng khóa dòng và chống bán vượt tồn kho (Overselling).
-5. **Kiểm tra chống Deadlock (`06_POST_orders_deadlock_check`):** Gửi các giỏ hàng chứa nhiều sản phẩm với thứ tự xáo trộn ngẫu nhiên để xác thực cơ chế gộp và sắp xếp `productId` tăng dần trước khi khóa dòng.
+4. **Tạo đơn hàng cạnh tranh (`05_POST_orders_hot_product`):** Nhiều luồng cùng đặt mua 1–3 đơn vị của một sản phẩm "hot" chỉ có 300 đơn vị tồn kho, để kiểm tra khóa dòng `@Lock(PESSIMISTIC_WRITE)` (`SELECT ... FOR UPDATE`) và chống bán vượt tồn kho (Overselling). Lượt đặt bị từ chối vì hết hàng (400) là kết quả hợp lệ và được thống kê riêng (`05_POST_orders_hot_product_out_of_stock`).
+5. **Kiểm tra chống Deadlock (`06_POST_orders_multi_product`):** Đặt đơn gồm 2 sản phẩm với thứ tự xáo trộn ngẫu nhiên để xác thực cơ chế sắp xếp `productCode` tăng dần trước khi khóa dòng.
 6. **Hủy đơn hoàn kho (`08_PATCH_order_cancel`):** Kiểm tra cập nhật trạng thái một chiều và transaction hoàn trả tồn kho.
+7. **Kiểm tra tính nhất quán tồn kho sau khi test:** Đối chiếu trong CSDL `tồn kho còn lại + số lượng trong các đơn chưa hủy = tồn kho ban đầu` và tồn kho không âm.
+
+Chỉ response 2xx (và lỗi hết hàng ở bước 4) được tính là thành công; mọi response khác bị tính là lỗi.
 
 ### 7.3. Kết quả đo đạc định lượng (Locust Statistics)
 
-Tổng hợp thống kê 4.476 requests ghi nhận trong 120 giây thử nghiệm:
+Tổng hợp thống kê 4.024 requests ghi nhận trong 120 giây thử nghiệm:
 
 | Method | Endpoint / Tác vụ | Request Count | Failure Count | Median Latency (ms) | P95 Latency (ms) | Throughput (RPS) | Đánh giá |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| `POST` | `00_POST_login` | 53 | 0 | 160 ms | 200 ms | 0.45 req/s | Xử lý kiểm tra mật khẩu BCrypt & sinh JWT |
-| `POST` | `00_POST_register` | 53 | 0 | 190 ms | 260 ms | 0.45 req/s | Mã hóa mật khẩu một chiều BCrypt |
-| `GET` | `01_GET_products` | 728 | 0 | 7 ms | 19 ms | 6.15 req/s | Truy vấn danh mục kèm phân trang |
-| `GET` | `02_GET_product_detail` | 712 | 0 | 6 ms | 13 ms | 6.02 req/s | Truy vấn chi tiết theo ID |
-| `GET` | `03_GET_customers` | 699 | 0 | 7 ms | 14 ms | 5.91 req/s | Truy vấn danh sách khách hàng |
-| `GET` | `04_GET_orders` | 691 | 0 | 7 ms | 13 ms | 5.84 req/s | Truy vấn danh sách đơn hàng |
-| `POST` | `05_POST_orders_lock` | 432 | 0 | 5 ms | 10 ms | 3.65 req/s | Khóa dòng trừ kho thành công 100% |
-| `POST` | `06_POST_orders_deadlock_check` | 288 | 0 | 6 ms | 10 ms | 2.43 req/s | Không phát sinh bất kỳ Deadlock nào |
-| `GET` | `07_GET_order_detail` | 658 | 0 | 7 ms | 10 ms | 5.56 req/s | Đọc chi tiết đơn & order_details |
-| `GET` | `Swagger & Docs` | 162 | 0 | 4 - 5 ms | 12 - 20 ms | 1.37 req/s | Tài liệu API |
-| **Tổng** | **Aggregated** | **4.476** | **0 (0.0%)** | **7 ms** | **18 ms** | **37.82 req/s** | **Hệ thống hoạt động ổn định** |
+| `POST` | `00_POST_login` | 56 | 0 | 180 ms | 410 ms | 0.47 req/s | Xử lý kiểm tra mật khẩu BCrypt & sinh JWT |
+| `POST` | `00_POST_register` | 56 | 0 | 210 ms | 320 ms | 0.47 req/s | Mã hóa mật khẩu một chiều BCrypt |
+| `GET` | `01_GET_products` | 724 | 0 | 11 ms | 46 ms | 6.06 req/s | Truy vấn danh mục kèm phân trang |
+| `GET` | `02_GET_product_detail` | 713 | 0 | 9 ms | 32 ms | 5.97 req/s | Truy vấn chi tiết theo ID |
+| `GET` | `03_GET_customers` | 699 | 0 | 11 ms | 33 ms | 5.85 req/s | Truy vấn danh sách khách hàng |
+| `GET` | `04_GET_orders` | 685 | 0 | 22 ms | 72 ms | 5.73 req/s | Truy vấn danh sách đơn hàng |
+| `POST` | `05_POST_orders_hot_product` | 181 | 0 | 48 ms | 120 ms | 1.51 req/s | Đặt hàng thành công, khóa dòng trừ kho |
+| `POST` | `05_POST_orders_hot_product_out_of_stock` | 265 | 0 | 12 ms | 18 ms | 2.22 req/s | Từ chối đúng khi hết hàng |
+| `POST` | `06_POST_orders_multi_product` | 271 | 0 | 42 ms | 85 ms | 2.27 req/s | Đơn nhiều sản phẩm, không deadlock |
+| `GET` | `07_GET_order_detail` | 181 | 0 | 13 ms | 46 ms | 1.51 req/s | Đọc chi tiết đơn & order_details |
+| `PATCH` | `08_PATCH_order_cancel` | 36 | 0 | 44 ms | 81 ms | 0.30 req/s | Hủy đơn, hoàn trả tồn kho |
+| `GET` | `Swagger & Docs` | 157 | 0 | 7 - 8 ms | 24 - 40 ms | 1.31 req/s | Tài liệu API |
+| **Tổng** | **Aggregated** | **4.024** | **0 (0.0%)** | **13 ms** | **82 ms** | **33.67 req/s** | **Không có request lỗi** |
+
+**Kết quả kiểm tra tính nhất quán tồn kho:**
+
+| Sản phẩm | Tồn ban đầu | Đã bán (đơn chưa hủy) | Còn lại | Nhất quán |
+| :--- | :---: | :---: | :---: | :---: |
+| Sản phẩm hot | 300 | 300 | 0 | Có |
+| Sản phẩm 2 (đơn nhiều sản phẩm) | 50.000 | 271 | 49.729 | Có |
+| Sản phẩm 3 (đơn nhiều sản phẩm) | 50.000 | 271 | 49.729 | Có |
+
+Sau bài test có 452 đơn hàng (416 `PENDING`, 36 `CANCELLED`); kết quả kiểm tra: `STOCK CONSISTENT`.
 
 ### 7.4. Phân tích thống kê & Tài nguyên hệ thống (CPU, RAM, RPS, Latency)
 
@@ -549,19 +564,19 @@ Biểu đồ thực nghiệm được kết xuất trực tiếp từ file [benc
 ![Biểu đồ đo đạc hiệu năng Kaggle](./docs/images/benchmark_kaggle_chart.png)
 
 1. **Về độ trễ (Latency):**
-   - **Median Latency:** Chỉ đạt **7 ms** đối với toàn hệ thống; các endpoint đọc (GET) và tạo đơn hàng (POST) dao động từ **5 ms – 7 ms**, phản ánh việc tối ưu kết nối CSDL và xử lý Transaction hiệu quả.
-   - **P95 Latency:** Đạt **18 ms**, chứng minh hệ thống duy trì độ trễ cực thấp ngay cả khi số lượng người dùng đồng thời tăng lên 80 VUs.
-   - Riêng hai endpoint `00_POST_register` và `00_POST_login` có P95 lần lượt là **260 ms** và **200 ms** do thuật toán băm bảo mật BCrypt cố tình tiêu tốn chu kỳ CPU để chống tấn công Brute-force.
+   - **Median Latency:** Đạt **13 ms** đối với toàn hệ thống; các endpoint đọc (GET) dao động từ **9 ms – 22 ms**, đặt hàng thành công **42 ms – 48 ms** do phải khóa dòng, ghi nhiều bảng và commit transaction.
+   - **P95 Latency:** Đạt **82 ms**. Trong khoảng 20 giây đầu (JVM đang khởi động và nhiều người dùng ảo cùng đăng ký), p95 lên tới khoảng 350 ms; sau đó ổn định khoảng 30 – 50 ms.
+   - Riêng hai endpoint `00_POST_register` và `00_POST_login` có P95 lần lượt là **320 ms** và **410 ms** do thuật toán băm bảo mật BCrypt cố tình tiêu tốn chu kỳ CPU để chống tấn công Brute-force.
 
 2. **Về thông lượng (Throughput / RPS):**
-   - Throughput tổng đạt trung bình **37.82 requests/giây** (đỉnh điểm đạt xấp xỉ 45 RPS trong giai đoạn sustain).
-   - Tỉ lệ lỗi ghi nhận là **0.0% (0 / 4.476 requests bị fail)**. Toàn bộ các transaction khóa hàng và cập nhật đơn đều hoàn tất trơn tru.
+   - Throughput tổng đạt trung bình **33.67 requests/giây** (đỉnh điểm xấp xỉ 40 RPS, ổn định khoảng 33 – 38 RPS trong giai đoạn sustain).
+   - Tỉ lệ lỗi ghi nhận là **0.0% (0 / 4.024 requests bị fail)**.
 
 3. **Về cơ chế xử lý Concurrency (Khóa dòng & Deadlock):**
-   - **Chống Overselling (`05_POST_orders_lock`):** 432 request đặt hàng đồng thời với `PESSIMISTIC_WRITE` hoàn tất mà không gây nghẽn kết nối (P95 chỉ 10 ms).
-   - **Chống Deadlock (`06_POST_orders_deadlock_check`):** 288 request đặt hàng nhiều món xáo trộn thứ tự không tạo ra bất kỳ trường hợp `DeadlockVictimException` hoặc khóa chéo nào nhờ thuật toán sắp xếp thứ tự ID trước khi khóa.
+   - **Chống Overselling (`05_POST_orders_hot_product`):** 446 lượt đặt tranh nhau 300 đơn vị của sản phẩm hot: 181 đơn thành công, 265 lượt đến sau nhận đúng lỗi hết hàng; tồn kho dừng ở 0, không âm và khớp với tổng số đã bán.
+   - **Chống Deadlock (`06_POST_orders_multi_product`):** 271 đơn gồm 2 sản phẩm với thứ tự xáo trộn đều thành công, không có request lỗi nào, nhờ sắp xếp thứ tự mã sản phẩm trước khi khóa.
+   - **Hoàn kho khi hủy (`08_PATCH_order_cancel`):** 36 đơn bị hủy được cộng trả tồn kho, kết quả kiểm tra nhất quán vẫn đúng sau khi hủy.
 
 4. **Về mức độ tiêu thụ tài nguyên (CPU & RAM):**
-   - **CPU:** Mức sử dụng CPU tăng nhẹ trong pha ramp-up và ổn định ở mức an toàn (~25% - 40%), không bị bão hòa (100% CPU spike).
-   - **RAM:** Bộ nhớ heap JVM duy trì ổn định xung quanh ngưỡng ~1.1GB - 1.3GB (nằm trong giới hạn `-Xmx1536m`), cơ chế Garbage Collection (G1GC trên Java 21) thu hồi bộ nhớ hiệu quả, không xuất hiện hiện tượng rò rỉ bộ nhớ (Memory Leak).
-
+   - **CPU:** Lên tới khoảng 90% trong 20 giây đầu (khởi động JVM và băm mật khẩu khi đăng ký), sau đó ổn định ở mức khoảng 20% – 40%, chưa bão hòa.
+   - **RAM:** Đường RAM trên biểu đồ là RAM đã dùng của toàn máy (bao gồm JVM, MySQL và Locust), tăng từ khoảng 2.0 GB lên 2.15 GB trong suốt bài test.
