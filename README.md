@@ -29,247 +29,31 @@ Hệ thống cung cấp nền tảng quản lý kho hàng, quan hệ khách hàn
 
 ### 1.3. Quy trình và quy tắc nghiệp vụ cơ bản
 
-#### a. Nghiệp vụ Xác thực & Phân quyền (Auth & Security)
-
-- Mật khẩu người dùng phải được mã hóa một chiều khi đăng ký.
-- Sử dụng cơ chế Stateless Authentication qua JWT Token cấp phát sau khi đăng nhập thành công.
-- Các API quản trị (như xem danh sách tài khoản) yêu cầu quyền ADMIN.
-
-#### b. Nghiệp vụ Quản lý khách hàng
-
-- Kiểm soát tính duy nhất của Email và Số điện thoại trên toàn hệ thống khi tạo mới cũng như khi cập nhật hồ sơ.
-- Hỗ trợ tra cứu lịch sử đơn hàng theo từng khách hàng.
-
-#### c. Nghiệp vụ Quản lý Tồn kho
-
-- **Bảo toàn lịch sử và trạng thái kinh doanh:** Sản phẩm không sử dụng cơ chế xóa khỏi CSDL.
-- Mỗi sản phẩm có trạng thái hoạt động (`ACTIVE` - Đang kinh doanh, `INACTIVE` - Ngừng kinh doanh). Chỉ các sản phẩm `ACTIVE` mới được phép giao dịch.
-- **Cô lập nghiệp vụ sửa thông tin và điều chỉnh kho:** Việc cập nhật thông tin định danh (tên, giá bán, trạng thái) được tách rời hoàn toàn khỏi việc cập nhật số lượng tồn kho. Tồn kho chỉ biến động qua các luồng duy nhất:
-  1. Khởi tạo sản phẩm ban đầu.
-  2. Điều chỉnh kiểm kê/nhập hàng tăng giảm theo lượng chênh lệch.
-  3. Khấu trừ tự động khi tạo đơn hàng và hoàn trả tự động khi hủy đơn.
-
-#### d. Nghiệp vụ Xử lý Giao dịch Đơn hàng
-
-**Toàn vẹn giao dịch:** Order và OrderDetails được xử lý trong một Transaction duy nhất.
-
-**Quy trình khởi tạo đơn và khấu trừ kho (`POST /orders`):**
-
-1. **Chuẩn hóa giỏ hàng:** Kiểm tra đơn hàng không rỗng, số lượng mỗi sản phẩm lớn hơn 0. Tự động cộng dồn số lượng nếu có các `productId` trùng lặp trong cùng một body.
-2. **Kiểm tra điều kiện ràng buộc:** Toàn bộ sản phẩm trong đơn hàng phải đang ở trạng thái `ACTIVE` và có số lượng tồn kho hiện tại lớn hơn hoặc bằng số lượng đặt mua. Nếu bất kỳ sản phẩm nào vi phạm, hủy toàn bộ giao dịch.
-3. **Ghi nhận và trừ kho:** Khấu trừ tồn kho tương ứng, lưu đơn giá tại thời điểm mua vào `order_details`, tính tổng tiền và tạo đơn ở trạng thái `PENDING`.
-
-**Quy tắc chuyển đổi trạng thái và hoàn kho:**
-
-Đơn hàng tuân thủ nghiêm ngặt luồng trạng thái một chiều (không cho phép lùi trạng thái):
-
-| Trạng thái hiện tại | Được phép chuyển sang | Hành vi nghiệp vụ chi tiết |
-| :--- | :--- | :--- |
-| `PENDING` | `SHIPPING` hoặc `CANCELLED` | Khởi tạo qua `POST /orders` (đã trừ kho & snapshot giá). Cho phép chuyển sang `SHIPPING` (xuất kho giao) hoặc `CANCELLED` (Transaction: hoàn trả tồn kho). |
-| `SHIPPING` | `COMPLETED` hoặc `CANCELLED` | Cho phép chuyển sang `COMPLETED` (giao thành công - chốt đơn) hoặc `CANCELLED` (Transaction: hoàn trả tồn kho, kể cả khi SP đã `INACTIVE`). |
-| `COMPLETED` / `CANCELLED` | Khóa hoàn toàn | **TRẠNG THÁI KHÓA CỨNG (TERMINAL STATES):** Chặn tuyệt đối mọi request đổi trạng thái để bảo vệ doanh thu và chống lỗi hoàn kho 2 lần (Double Restock). |
-
-Khi chuyển sang `CANCELLED` (từ `PENDING` hoặc `SHIPPING`), hệ thống thực thi Transaction: cập nhật trạng thái đơn sang `CANCELLED` và tự động cộng hoàn trả số lượng từng mặt hàng trong đơn về lại tồn kho của sản phẩm tương ứng (ngay cả khi sản phẩm đó hiện đã chuyển sang `INACTIVE`).
-
-#### **Sơ đồ máy trạng thái đơn hàng (Order State Machine):**
-
-```text
-       tạo đơn (POST /orders)
-       [Khấu trừ kho & snapshot giá]
-               |
-               v
-       +---------------+      xuất kho (PATCH status = SHIPPING)       +---------------+
-       |               | --------------------------------------------> |               |
-       |    PENDING    |                                               |   SHIPPING    |
-       |               | -----\                                 -----> |               |
-       +---------------+      |                                 |      +---------------+
-                              |                                 |              |
-                              | hủy đơn (PATCH CANCELLED)       |              | giao thành công
-                              | [Cộng hoàn trả tồn kho]         |              | (PATCH COMPLETED)
-                              v                                 |              v
-                       +---------------+                        |      +---------------+
-                       |               |                        |      |               |
-                       |   CANCELLED   | <----------------------/      |   COMPLETED   |
-                       |               |   hủy đơn (PATCH CANCELLED)   |               |
-                       +---------------+   [Cộng hoàn trả tồn kho]     +---------------+
-                               |                                               |
-                               v                                               v
-                        [Khóa hoàn toàn]                                [Khóa hoàn toàn]
-                 Chống hoàn kho 2 lần (Double Restock)                  Bảo vệ doanh thu
-```
-
-> **Lưu ý:**
-> - Chỉ có thể chuyển sang `SHIPPING` hoặc `CANCELLED` khi đơn hàng đang ở trạng thái `PENDING`.
-> - Chỉ có thể chuyển sang `COMPLETED` hoặc `CANCELLED` khi đơn hàng đang ở trạng thái `SHIPPING`.
-> - Khi đơn hàng đã ở trạng thái `COMPLETED` hoặc `CANCELLED`, hệ thống **khóa hoàn toàn**, chặn tuyệt đối mọi request thay đổi trạng thái tiếp theo.
+Chi tiết quy trình và quy tắc nghiệp vụ của từng phân hệ (Xác thực & Phân quyền, Khách hàng, Tồn kho, Đơn hàng & Sơ đồ trạng thái):
+- Xem chi tiết tại: [`docs/business-rules.md`](./docs/business-rules.md)
 
 ---
 
 ## PHẦN 2: ĐẶC TẢ CÁC API (RESTFUL API SPECIFICATION)
 
 - **Base URL:** `http://localhost:3000/api/v1`
-- **Định dạng dữ liệu:** JSON
-- **Cơ chế xác thực:** JWT Token (truyền qua Header `Authorization: Bearer <token>` đối với các endpoint yêu cầu đăng nhập)
 - **Tài liệu tương tác (Swagger UI):** `http://localhost:3000/swagger-ui/index.html`
-
-### 2.1. Phân hệ Xác thực & Người dùng (Auth & Users)
-
-Mục tiêu: Quản lý đăng ký, đăng nhập cấp phát Token và quản trị tài khoản hệ thống.
-
-| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Quy tắc xử lý chính |
-| :--- | :--- | :--- | :--- | :--- |
-| POST | `/auth/register` | Công khai | Đăng ký tài khoản mới | Kiểm tra trùng username; mã hóa password. |
-| POST | `/auth/login` | Công khai | Đăng nhập hệ thống | Đối chiếu mật khẩu; sinh JWT nếu hợp lệ. |
-| GET | `/users` | ADMIN | Lấy danh sách tài khoản | Chỉ dành cho quyền ADMIN; ẩn trường mật khẩu. |
-
-### 2.2. Phân hệ Khách hàng (Customers)
-
-Mục tiêu: Quản lý hồ sơ thông tin khách hàng và tra cứu lịch sử mua sắm.
-
-| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Quy tắc xử lý chính |
-| :--- | :--- | :--- | :--- | :--- |
-| GET | `/customers` | ADMIN, USER | Lấy danh sách khách hàng | Truy vấn danh sách khách hàng có phân trang. |
-| GET | `/customers/{id}` | ADMIN, USER | Xem thông tin 1 khách hàng | Xem chi tiết liên hệ và nhân viên Sales Rep phụ trách. |
-| POST | `/customers` | ADMIN | Tạo mới hồ sơ khách hàng | Lưu thông tin khách hàng và gán nhân viên chăm sóc. |
-| PUT | `/customers/{id}` | ADMIN | Cập nhật hồ sơ khách hàng | Cập nhật thông tin hoặc đổi nhân viên chăm sóc. |
-| GET | `/customers/{id}/orders` | ADMIN, USER | Xem lịch sử đơn hàng của KH | Liệt kê tất cả các đơn hàng khách hàng `{id}` đã đặt. |
-
-### 2.3. Phân hệ Sản phẩm (Products)
-
-Mục tiêu: Quản lý danh mục hàng hóa, niêm yết giá và kiểm soát số lượng tồn kho.
-
-| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Quy tắc xử lý chính |
-| :--- | :--- | :--- | :--- | :--- |
-| GET | `/products` | ADMIN, USER | Lấy danh sách sản phẩm | Lọc theo tên sản phẩm, khoảng giá hoặc trạng thái kho. |
-| GET | `/products/{id}` | ADMIN, USER | Xem chi tiết sản phẩm | Truy xuất tên, đơn giá hiện tại và số lượng tồn kho. |
-| POST | `/products` | ADMIN | Thêm mới sản phẩm và sửa số lượng | Ràng buộc số lượng và đơn giá. Xác thực người dùng admin. |
-| PATCH | `/products/{id}` | ADMIN | Cập nhật thông tin thương mại | Cập nhật thông tin sản phẩm. |
-
-### 2.4. Phân hệ Đơn hàng (Orders & Order Details)
-
-Mục tiêu: Xử lý giao dịch mua bán trọn gói (gộp chung thông tin Order và Order Details).
-
-| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Quy tắc xử lý chính |
-| :--- | :--- | :--- | :--- | :--- |
-| GET | `/orders` | ADMIN, USER | Lấy danh sách đơn hàng | Hiển thị thông tin tóm tắt các đơn hàng (không kèm danh sách sản phẩm). |
-| GET | `/orders/{id}` | ADMIN, USER | Xem chi tiết đơn hàng | Trả về thông tin chung kèm danh sách sản phẩm (`order_details`). |
-| POST | `/orders` | ADMIN, USER | Tạo đơn hàng mới | Chạy trong 1 Transaction: kiểm tra đủ tồn kho -> tạo đơn & chi tiết đơn -> trừ kho. |
-| PATCH | `/orders/{id}` | ADMIN | Cập nhật trạng thái đơn hàng | Cập nhật trạng thái một chiều (PENDING -> SHIPPING -> COMPLETED). Nếu chuyển sang CANCELLED từ PENDING/SHIPPING: chạy Transaction đổi trạng thái và cộng hoàn kho theo `order_details`. Chặn tuyệt đối nếu đơn đã COMPLETED hoặc CANCELLED. Cho phép thay đổi số lượng sản phẩm khi đơn hàng ở trạng thái PENDING. |
-
-### 2.5. Định dạng phản hồi lỗi
-
-```json
-{
-  "timestamp": "2026-10-27T00:00:00",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "Sản phẩm 'A' (mã: 1) không đủ số lượng tồn kho. Hiện có: 2, yêu cầu: 5"
-}
-```
-
-| Mã HTTP | Ý nghĩa |
-| :--- | :--- |
-| 400 | Dữ liệu không hợp lệ (kèm `errors` theo từng trường) hoặc vi phạm quy tắc nghiệp vụ |
-| 401 | Sai tài khoản/mật khẩu, thiếu hoặc sai token |
-| 403 | Không đủ quyền truy cập |
-| 404 | Không tìm thấy tài nguyên |
-| 409 | Xung đột dữ liệu do cập nhật đồng thời |
+- **File đặc tả OpenAPI (JSON):** [`docs/openapi.json`](./docs/openapi.json)
+- **Xem chi tiết đặc tả các endpoint & mã lỗi tại:** [`docs/api-specification.md`](./docs/api-specification.md)
 
 ---
 
 ## PHẦN 3: MỘT SỐ VẤN ĐỀ CỦA HỆ THỐNG (ĐÃ XỬ LÝ Ở PHASE 1)
 
-Khi Backend Server xử lý đồng thời nhiều HTTP Request (Concurrent Requests) và tương tác bất đồng bộ xuống Persistence Database, độ trễ đọc/ghi dễ gây sai lệch dữ liệu.
-
-### 3.1. Lỗi ghi đè dữ liệu khi cập nhật tồn kho
-
-**Kịch bản gây lỗi:**
-
-1. Thực thể Product (mã A) đang có tồn kho `qty = 10`.
-2. Lúc 09:00: Admin gọi `GET /api/v1/products/A`, nhận về Response có `qty = 10` và chuẩn bị nhập thêm 5 sản phẩm (tính thành 15).
-3. Lúc 09:01: Customer gửi Request `POST /api/v1/orders` với `OrderRequest(customerId, employeeId, List<Items>)` đặt mua 3 sản phẩm A. Server xử lý và trừ kho trong Database xuống còn `qty = 7`, trả về 201 Created.
-4. Lúc 09:02: Admin gửi Request `PUT` mang toàn bộ dữ liệu cũ kèm `ProductRequest(name, qty = 15, price)` lên Server. Database bị ghi đè ngược thành `qty = 15` (lệch 3 sản phẩm so với thực tế là 7 + 5 = 12).
-
-**Cách hệ thống Phase 1 đã xử lý:**
-
-- Trong vận hành thực tế, mọi biến động `qty` bắt buộc đi qua các Request giao dịch `POST` (như `POST /api/v1/orders`) hoặc điều chỉnh theo lượng chênh lệch.
-- API cập nhật thông tin sản phẩm được chuyển thành `PATCH /api/v1/products/{id}` và chỉ nhận `name`, `price`, `status`, không cho phép ghi đè trực tiếp `qty`.
-
-### 3.2. Đứt gãy giao dịch giữa chừng
-
-**Kịch bản gây lỗi:**
-
-- Client gửi `POST /api/v1/orders` với `List<Items>` gồm 5 sản phẩm. Server phải ghi liên tiếp vào bảng `orders`, `order_details` và trừ `qty` trong bảng `products`.
-- Khi Server vừa trừ kho xong 3 sản phẩm đầu trong Database, đến sản phẩm thứ 4 thì phát hiện `qty` không đủ (hoặc sản phẩm đang `INACTIVE`, hoặc ngắt kết nối Database đột ngột). Nếu các lệnh chạy độc lập, Server trả Response lỗi nhưng 3 sản phẩm đầu đã bị trừ kho vô lý trong khi đơn hàng không được tạo.
-
-**Cách hệ thống Phase 1 đã xử lý:**
-
-- Bọc toàn bộ quá trình kiểm tra trạng thái `ACTIVE`, đối chiếu và trừ/hoàn trả `qty`, lưu bảng `orders` + `order_details` (trong cả `POST /api/v1/orders` và `PATCH /api/v1/orders/{id}`) vào một Database Transaction (ACID) duy nhất.
-- Tuân thủ nguyên tắc All-or-Nothing: bất kỳ bước nào lỗi sẽ tự động kích hoạt ROLLBACK, khôi phục nguyên trạng `qty` của các dòng trước đó.
-
-### 3.3. Sai số trong Database khi có Request đồng thời
-
-**Kịch bản gây lỗi:**
-
-- Sản phẩm A còn tồn kho `qty = 5`. Cùng một thời điểm, 2 khách hàng gửi đồng thời 2 Request `POST /api/v1/orders` cùng đặt mua sản phẩm A với số lượng lần lượt là 4 và 3.
-- Hai luồng xử lý trên Server cùng đọc Database lúc `qty = 5`, cùng kiểm tra thấy hợp lệ (5 >= 4 và 5 >= 3) và cùng phát lệnh cập nhật trừ kho xuống Database, dẫn đến bán vượt tồn kho (Overselling) hoặc ghi đè sai số dư `qty`.
-
-**Cách hệ thống Phase 1 đã xử lý:**
-
-- Áp dụng khóa dòng mức cơ sở dữ liệu (Row-level Locking - `SELECT ... FOR UPDATE`) trên bảng `products` bên trong Transaction.
-- Khi Request 1 đang kiểm tra và trừ `qty` của sản phẩm A, dòng dữ liệu này bị khóa độc quyền. Request 2 phải chờ ở hàng đợi Database cho đến khi Request 1 COMMIT xong (lúc này `qty` còn 1), nhờ đó Request 2 đọc được giá trị mới nhất và báo lỗi hết hàng chính xác.
-
-### 3.4. Bế tắc hệ thống do khóa chéo (Database Deadlock)
-
-**Kịch bản gây lỗi:** Khi đã áp dụng khóa dòng (Row-level Locking) để chống âm kho cho `POST /api/v1/orders`:
-
-- Request 1 gửi `List<Items>` theo thứ tự [Sản phẩm A, Sản phẩm B]: Luồng 1 khóa dòng A trước, rồi chờ khóa dòng B.
-- Cùng lúc đó, Request 2 gửi `List<Items>` theo thứ tự [Sản phẩm B, Sản phẩm A]: Luồng 2 khóa dòng B trước, rồi chờ khóa dòng A.
-- Hệ quả: Luồng 1 chờ Luồng 2 nhả B, Luồng 2 chờ Luồng 1 nhả A. Cả hai treo cứng (Deadlock), làm nghẽn kết nối Database.
-
-**Cách hệ thống Phase 1 đã phòng ngừa:**
-
-- Ngay ở bước chuẩn hóa `OrderRequest`, hệ thống áp dụng quy tắc: "Gộp và sắp xếp `productId` trong `List<Items>` theo thứ tự tăng dần trước khi kiểm tra/trừ kho".
-- Nhờ đó, cả Request 1 và Request 2 đều luôn khóa dòng Sản phẩm A trước rồi mới đến Sản phẩm B, triệt tiêu hoàn toàn nguy cơ Deadlock.
+Chi tiết kịch bản gây lỗi khi xử lý đồng thời (ghi đè tồn kho, đứt gãy giao dịch, bán vượt tồn kho, deadlock) và giải pháp đã áp dụng ở Phase 1:
+- Xem chi tiết tại: [`docs/phase1-issues.md`](./docs/phase1-issues.md)
 
 ---
 
 ## PHẦN 4: NHỮNG ĐIỂM GỢI Ý CẢI TIẾN Ở PHASE 2
 
-### 4.1. Request trùng lặp dữ liệu & Gửi lặp Request (Duplicate Request)
-
-**Kịch bản gây lỗi:**
-
-- Gửi lặp Request tạo đơn: khi gọi `POST /api/v1/orders`, Client gửi lặp 2 Request cùng lúc thay vì 1 Request, làm Server tạo thừa 1 đơn hàng và trừ bảng `products` 2 lần.
-
-### 4.2. Lỗ hổng thu hồi quyền truy cập của Stateless JWT (Token Revocation Problem)
-
-**Kịch bản gây lỗi:**
-
-- Ở Phase 1, API `POST /api/v1/auth/login` cấp phát JWT Token theo cơ chế Stateless (Server không lưu trạng thái đăng nhập mà chỉ kiểm tra chữ ký và hạn sử dụng của Token trên Header `Authorization`).
-- Nếu một tài khoản User (quyền USER) bị lộ Token hoặc nhân viên bị cho nghỉ việc đột xuất khi Token vẫn còn hạn (ví dụ: 24 giờ), người này vẫn có thể dùng Token cũ gọi `GET /api/v1/customers` xem dữ liệu khách hàng hoặc gửi Request phá hoại hệ thống cho đến khi Token tự hết hạn.
-
-**Hướng giải quyết (kiến nghị nâng cấp):**
-
-- Giảm thời gian sống của Access Token xuống ngắn (15-30 phút) kết hợp với Refresh Token.
-- Tích hợp bộ nhớ đệm (Redis Cache) ở Phase 2 để lưu danh sách đen (Token Blacklist) hoặc kiểm tra tức thời trạng thái hoạt động của nhân viên (`ACTIVE` / `TERMINATED`) trước khi cho phép thực thi Request.
-
-### 4.3. Mở rộng xử lý nghiệp vụ và tối ưu hóa hiệu năng
-
-**Mở rộng thực thể tham gia vào hệ thống (Employee):**
-
-- Bổ sung thực thể Employee với mối quan hệ tự tham chiếu đệ quy (`reportsTo`) để quản lý sơ đồ phân cấp báo cáo.
-- Chuẩn hóa liên kết giữa Employee với Customer (nhân viên Sales Rep chăm sóc trong `POST/PUT /api/v1/customers`) và với Order (trường `employeeId` trong `POST /api/v1/orders`) nhằm thống kê KPI doanh số.
-
-**Phân quyền chi tiết & tối ưu hóa truy vấn:**
-
-- Liên kết tài khoản User với hồ sơ Employee để nâng cấp phân quyền từ mức ADMIN/USER sang phân quyền truy cập dữ liệu theo cấp bậc.
-- Mở rộng bộ lọc tìm kiếm đa tiêu chí trên `GET /api/v1/products` và `GET /api/v1/orders` (lọc theo khoảng giá `price`, ngưỡng tồn kho `qty`, thời gian đặt hàng) kết hợp phân trang (`?page=0&size=10`).
-- Tích hợp Caching (Redis) cho danh mục sản phẩm (`GET /api/v1/products`) để giảm tải đọc trực tiếp xuống Persistence Database.
-
-**Bổ sung bảng lịch sử biến động kho (Inventory Audit Log):**
-
-- Ghi nhận tự động mọi thay đổi về `qty` của Product (khi tạo sản phẩm `POST /api/v1/products`, điều chỉnh kho `PATCH /api/v1/products/{id}`, trừ kho khi `POST /api/v1/orders` hoặc hoàn kho khi `PATCH /api/v1/orders/{id}` sang `CANCELLED`), lưu rõ `employeeId`/User thực hiện và lý do điều chỉnh.
+Chi tiết các điểm gợi ý cải tiến ở Phase 2 (xử lý duplicate request, thu hồi Stateless JWT, mở rộng thực thể Employee, bộ lọc nâng cao, caching và audit log):
+- Xem chi tiết tại: [`docs/phase2-improvements.md`](./docs/phase2-improvements.md)
 
 ---
 
