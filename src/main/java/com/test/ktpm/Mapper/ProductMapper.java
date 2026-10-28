@@ -1,7 +1,7 @@
 package com.test.ktpm.Mapper;
 
 import com.test.ktpm.Model.Request.ProductRequest;
-import com.test.ktpm.Model.Request.ProductUpdateRequest;
+import com.test.ktpm.Model.Request.ProductPatchRequest;
 import com.test.ktpm.Model.Response.ProductResponse;
 import com.test.ktpm.Entity.Product;
 import org.springframework.data.domain.Page;
@@ -37,7 +37,7 @@ public class ProductMapper {
                 .build();
     }
 
-    public void patchEntity(Product product, ProductUpdateRequest request) {
+    public void patchEntity(Product product, ProductPatchRequest request) {
         if (product == null || request == null) {
             return;
         }

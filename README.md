@@ -130,8 +130,8 @@ Mục tiêu: Quản lý hồ sơ thông tin khách hàng và tra cứu lịch s�
 | :--- | :--- | :--- | :--- | :--- |
 | GET | `/customers` | ADMIN, USER | Lấy danh sách khách hàng | Truy vấn danh sách khách hàng có phân trang. |
 | GET | `/customers/{id}` | ADMIN, USER | Xem thông tin 1 khách hàng | Xem chi tiết liên hệ và nhân viên Sales Rep phụ trách. |
-| POST | `/customers` | ADMIN, USER | Tạo mới hồ sơ khách hàng | Lưu thông tin khách hàng và gán nhân viên chăm sóc. |
-| PUT | `/customers/{id}` | ADMIN, USER | Cập nhật hồ sơ khách hàng | Cập nhật thông tin hoặc đổi nhân viên chăm sóc. |
+| POST | `/customers` | ADMIN | Tạo mới hồ sơ khách hàng | Lưu thông tin khách hàng và gán nhân viên chăm sóc. |
+| PUT | `/customers/{id}` | ADMIN | Cập nhật hồ sơ khách hàng | Cập nhật thông tin hoặc đổi nhân viên chăm sóc. |
 | GET | `/customers/{id}/orders` | ADMIN, USER | Xem lịch sử đơn hàng của KH | Liệt kê tất cả các đơn hàng khách hàng `{id}` đã đặt. |
 
 ### 2.3. Phân hệ Sản phẩm (Products)
@@ -154,7 +154,7 @@ Mục tiêu: Xử lý giao dịch mua bán trọn gói (gộp chung thông tin O
 | GET | `/orders` | ADMIN, USER | Lấy danh sách đơn hàng | Hiển thị thông tin tóm tắt các đơn hàng (không kèm danh sách sản phẩm). |
 | GET | `/orders/{id}` | ADMIN, USER | Xem chi tiết đơn hàng | Trả về thông tin chung kèm danh sách sản phẩm (`order_details`). |
 | POST | `/orders` | ADMIN, USER | Tạo đơn hàng mới | Chạy trong 1 Transaction: kiểm tra đủ tồn kho -> tạo đơn & chi tiết đơn -> trừ kho. |
-| PATCH | `/orders/{id}` | ADMIN, USER | Cập nhật trạng thái đơn hàng | Cập nhật trạng thái một chiều (PENDING -> SHIPPING -> COMPLETED). Nếu chuyển sang CANCELLED từ PENDING/SHIPPING: chạy Transaction đổi trạng thái và cộng hoàn kho theo `order_details`. Chặn tuyệt đối nếu đơn đã COMPLETED hoặc CANCELLED. Cho phép thay đổi số lượng sản phẩm khi đơn hàng ở trạng thái PENDING. |
+| PATCH | `/orders/{id}` | ADMIN | Cập nhật trạng thái đơn hàng | Cập nhật trạng thái một chiều (PENDING -> SHIPPING -> COMPLETED). Nếu chuyển sang CANCELLED từ PENDING/SHIPPING: chạy Transaction đổi trạng thái và cộng hoàn kho theo `order_details`. Chặn tuyệt đối nếu đơn đã COMPLETED hoặc CANCELLED. Cho phép thay đổi số lượng sản phẩm khi đơn hàng ở trạng thái PENDING. |
 
 ### 2.5. Định dạng phản hồi lỗi
 
@@ -353,7 +353,7 @@ BTL-KTPM/
 | Service | Thực thi quy tắc nghiệp vụ, quản lý transaction (`@Transactional`), khóa dữ liệu | `OrderService.createOrder` |
 | Repository | Truy vấn CSDL qua Spring Data JPA | `ProductRepository.findAllByIdWithLock` |
 | Entity | Ánh xạ bảng CSDL, khai báo quan hệ | `Order` 1-n `OrderDetail` |
-| Model (DTO) | Tách biệt dữ liệu API với cấu trúc bảng | `ProductUpdateRequest`, `OrderResponse` |
+| Model (DTO) | Tách biệt dữ liệu API với cấu trúc bảng | `ProductPatchRequest`, `OrderResponse` |
 | Mapper | Chuyển đổi Entity và DTO | `ProductMapper.patchEntity` |
 | Exceptions | Chuẩn hóa định dạng lỗi JSON trả về Client | `GlobalExceptionHandler` |
 
@@ -361,7 +361,7 @@ BTL-KTPM/
 
 | Vấn đề | Cơ chế | Vị trí trong mã nguồn |
 | :--- | :--- | :--- |
-| Ghi đè tồn kho | Tách API cập nhật thông tin (`PATCH`) khỏi tồn kho | `ProductController`, `ProductUpdateRequest` |
+| Ghi đè tồn kho | Tách API cập nhật thông tin (`PATCH`) khỏi tồn kho | `ProductController`, `ProductPatchRequest` |
 | Đứt gãy giao dịch | `@Transactional` bao toàn bộ nghiệp vụ đơn hàng | `OrderService` |
 | Overselling | `@Lock(PESSIMISTIC_WRITE)` sinh `SELECT ... FOR UPDATE` | `ProductRepository.findAllByIdWithLock` |
 | Deadlock | Lọc trùng và sắp xếp `productCode` tăng dần trước khi khóa | `OrderService.createOrder`, `OrderService.patchOrder` |

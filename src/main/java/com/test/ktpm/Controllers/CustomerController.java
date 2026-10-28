@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -51,8 +52,11 @@ public class CustomerController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Tạo mới khách hàng thành công"),
             @ApiResponse(responseCode = "400", description = "Dữ liệu nhập vào không hợp lệ"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực (Unauthorized)"),
+            @ApiResponse(responseCode = "403", description = "Không có quyền truy cập (Cần quyền ROLE_ADMIN)"),
             @ApiResponse(responseCode = "404", description = "Không tìm thấy User tương ứng")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<CustomerResponse> createCustomer(@Valid @RequestBody CustomerRequest request) {
         CustomerResponse createdCustomer = customerService.createCustomer(request);
@@ -63,8 +67,11 @@ public class CustomerController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Cập nhật khách hàng thành công"),
             @ApiResponse(responseCode = "400", description = "Dữ liệu nhập vào không hợp lệ"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực (Unauthorized)"),
+            @ApiResponse(responseCode = "403", description = "Không có quyền truy cập (Cần quyền ROLE_ADMIN)"),
             @ApiResponse(responseCode = "404", description = "Không tìm thấy khách hàng để cập nhật")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<CustomerResponse> updateCustomer(
             @PathVariable Long id,

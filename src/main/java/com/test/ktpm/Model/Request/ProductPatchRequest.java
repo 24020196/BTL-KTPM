@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ProductUpdateRequest {
+public class ProductPatchRequest {
 
     @Pattern(regexp = ".*\\S.*", message = "Tên sản phẩm không được để trống")
     private String name;

@@ -1,7 +1,7 @@
 package com.test.ktpm.Services;
 
 import com.test.ktpm.Model.Request.ProductRequest;
-import com.test.ktpm.Model.Request.ProductUpdateRequest;
+import com.test.ktpm.Model.Request.ProductPatchRequest;
 import com.test.ktpm.Model.Response.ProductResponse;
 import com.test.ktpm.Entity.Product;
 import com.test.ktpm.Exceptions.BadRequestException;
@@ -42,7 +42,7 @@ public class ProductService {
     }
 
     @Transactional
-    public ProductResponse patchProduct(Long id, ProductUpdateRequest request) {
+    public ProductResponse patchProduct(Long id, ProductPatchRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sản phẩm với mã: " + id));
 
