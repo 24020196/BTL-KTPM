@@ -28,7 +28,8 @@ public class OrderController {
 
     @Operation(summary = "Lấy danh sách đơn hàng có phân trang")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lấy danh sách thành công")
+            @ApiResponse(responseCode = "200", description = "Lấy danh sách thành công"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực (Unauthorized)")
     })
     @GetMapping
     public ResponseEntity<Page<OrderResponse>> getAllOrders(
@@ -39,6 +40,7 @@ public class OrderController {
     @Operation(summary = "Lấy chi tiết đơn hàng theo mã đơn hàng")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lấy chi tiết đơn hàng thành công"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực (Unauthorized)"),
             @ApiResponse(responseCode = "404", description = "Không tìm thấy đơn hàng")
     })
     @GetMapping("/{id}")
@@ -50,6 +52,7 @@ public class OrderController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Tạo đơn hàng thành công"),
             @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ hoặc sản phẩm không đủ tồn kho"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực (Unauthorized)"),
             @ApiResponse(responseCode = "404", description = "Không tìm thấy khách hàng hoặc sản phẩm")
     })
     @PostMapping
@@ -74,4 +77,3 @@ public class OrderController {
         return ResponseEntity.ok(orderService.patchOrder(id, request));
     }
 }
-

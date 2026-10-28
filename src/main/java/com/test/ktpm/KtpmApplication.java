@@ -9,16 +9,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@OpenAPIDefinition(
-        info = @Info(title = "KTPM API", version = "1.0", description = "Tài liệu API hệ thống KTPM"),
-        security = @SecurityRequirement(name = "BearerAuth")
-)
-@SecurityScheme(
-        name = "BearerAuth",
-        type = SecuritySchemeType.HTTP,
-        scheme = "bearer",
-        bearerFormat = "JWT"
-)
+@OpenAPIDefinition(info = @Info(title = "Inventory Management System API", version = "1.0", description = "Tài liệu API hệ thống quản lý kho hàng"), security = @SecurityRequirement(name = "BearerAuth"))
+@SecurityScheme(name = "BearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
 public class KtpmApplication {
 
     public static void main(String[] args) {

@@ -12,10 +12,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,17 +30,19 @@ public class CustomerController {
 
     @Operation(summary = "Lấy danh sách khách hàng")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lấy danh sách thành công")
+            @ApiResponse(responseCode = "200", description = "Lấy danh sách thành công"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực (Unauthorized)")
     })
     @GetMapping
     public ResponseEntity<Page<CustomerResponse>> getAllCustomers(
-            @PageableDefault(size = 10) Pageable pageable) {
+            @PageableDefault(size = 10, sort = "customerNumber", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(customerService.getAllCustomers(pageable));
     }
 
     @Operation(summary = "Xem thông tin 1 khách hàng")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lấy chi tiết thành công"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực (Unauthorized)"),
             @ApiResponse(responseCode = "404", description = "Không tìm thấy khách hàng")
     })
     @GetMapping("/{id}")
@@ -52,11 +54,8 @@ public class CustomerController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Tạo mới khách hàng thành công"),
             @ApiResponse(responseCode = "400", description = "Dữ liệu nhập vào không hợp lệ"),
-            @ApiResponse(responseCode = "401", description = "Chưa xác thực (Unauthorized)"),
-            @ApiResponse(responseCode = "403", description = "Không có quyền truy cập (Cần quyền ROLE_ADMIN)"),
             @ApiResponse(responseCode = "404", description = "Không tìm thấy User tương ứng")
     })
-    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<CustomerResponse> createCustomer(@Valid @RequestBody CustomerRequest request) {
         CustomerResponse createdCustomer = customerService.createCustomer(request);
@@ -67,11 +66,8 @@ public class CustomerController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Cập nhật khách hàng thành công"),
             @ApiResponse(responseCode = "400", description = "Dữ liệu nhập vào không hợp lệ"),
-            @ApiResponse(responseCode = "401", description = "Chưa xác thực (Unauthorized)"),
-            @ApiResponse(responseCode = "403", description = "Không có quyền truy cập (Cần quyền ROLE_ADMIN)"),
             @ApiResponse(responseCode = "404", description = "Không tìm thấy khách hàng để cập nhật")
     })
-    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<CustomerResponse> updateCustomer(
             @PathVariable Long id,
@@ -82,6 +78,7 @@ public class CustomerController {
     @Operation(summary = "Xem lịch sử đơn hàng của khách hàng")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lấy danh sách đơn hàng thành công"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực (Unauthorized)"),
             @ApiResponse(responseCode = "404", description = "Không tìm thấy khách hàng")
     })
     @GetMapping("/{id}/orders")

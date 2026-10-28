@@ -28,7 +28,8 @@ public class ProductController {
 
     @Operation(summary = "Lấy danh sách sản phẩm có phân trang")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lấy danh sách sản phẩm thành công")
+            @ApiResponse(responseCode = "200", description = "Lấy danh sách sản phẩm thành công"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực (Unauthorized)")
     })
     @GetMapping
     public ResponseEntity<Page<ProductResponse>> getAllProducts(
@@ -39,6 +40,7 @@ public class ProductController {
     @Operation(summary = "Lấy thông tin sản phẩm theo mã")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lấy thông tin sản phẩm thành công"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực (Unauthorized)"),
             @ApiResponse(responseCode = "404", description = "Không tìm thấy sản phẩm")
     })
     @GetMapping("/{id}")
@@ -64,8 +66,9 @@ public class ProductController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Cập nhật sản phẩm thành công"),
             @ApiResponse(responseCode = "400", description = "Dữ liệu nhập vào không hợp lệ"),
-            @ApiResponse(responseCode = "404", description = "Không tìm thấy sản phẩm để cập nhật"),
-            @ApiResponse(responseCode = "403", description = "Không có quyền truy cập (Cần quyền ROLE_ADMIN)")
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực (Unauthorized)"),
+            @ApiResponse(responseCode = "403", description = "Không có quyền truy cập (Cần quyền ROLE_ADMIN)"),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy sản phẩm để cập nhật")
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}")
