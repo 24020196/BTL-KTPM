@@ -12,7 +12,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +31,7 @@ public class OrderController {
     })
     @GetMapping
     public ResponseEntity<Page<OrderResponse>> getAllOrders(
-            @PageableDefault(size = 10, sort = "orderNumber", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 10) Pageable pageable) {
         return ResponseEntity.ok(orderService.getAllOrders(pageable));
     }
 

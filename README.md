@@ -116,45 +116,45 @@ Khi chuyển sang `CANCELLED` (từ `PENDING` hoặc `SHIPPING`), hệ thống t
 
 Mục tiêu: Quản lý đăng ký, đăng nhập cấp phát Token và quản trị tài khoản hệ thống.
 
-| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Request Body / Params | Response | Quy tắc xử lý chính |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| POST | `/auth/register` | Công khai | Đăng ký tài khoản mới | `RegisterRequest` (username, password) | 201 Created - Message thành công | Kiểm tra trùng username; mã hóa password. |
-| POST | `/auth/login` | Công khai | Đăng nhập hệ thống | `LoginRequest` (username, password) | 200 OK - Chuỗi JWT Token | Đối chiếu mật khẩu; sinh JWT nếu hợp lệ. |
-| GET | `/users` | ADMIN | Lấy danh sách tài khoản | None | 200 OK - `List<UserDto>` | Chỉ dành cho quyền ADMIN; ẩn trường mật khẩu. |
+| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Quy tắc xử lý chính |
+| :--- | :--- | :--- | :--- | :--- |
+| POST | `/auth/register` | Công khai | Đăng ký tài khoản mới | Kiểm tra trùng username; mã hóa password. |
+| POST | `/auth/login` | Công khai | Đăng nhập hệ thống | Đối chiếu mật khẩu; sinh JWT nếu hợp lệ. |
+| GET | `/users` | ADMIN | Lấy danh sách tài khoản | Chỉ dành cho quyền ADMIN; ẩn trường mật khẩu. |
 
 ### 2.2. Phân hệ Khách hàng (Customers)
 
 Mục tiêu: Quản lý hồ sơ thông tin khách hàng và tra cứu lịch sử mua sắm.
 
-| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Request Body / Params | Response | Quy tắc xử lý chính |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| GET | `/customers` | ADMIN, USER | Lấy danh sách khách hàng | Query: `?page=0&size=10` | 200 OK - `Page<CustomerDto>` | Truy vấn danh sách khách hàng có phân trang. |
-| GET | `/customers/{id}` | ADMIN, USER | Xem thông tin 1 khách hàng | Path: `id` | 200 OK - `CustomerDto` | Xem chi tiết liên hệ và nhân viên Sales Rep phụ trách. |
-| POST | `/customers` | ADMIN, USER | Tạo mới hồ sơ khách hàng | `CustomerRequest` | 201 Created - `CustomerDto` | Lưu thông tin khách hàng và gán nhân viên chăm sóc. |
-| PUT | `/customers/{id}` | ADMIN, USER | Cập nhật hồ sơ khách hàng | Path: `id`; Body: `CustomerRequest` | 200 OK - `CustomerDto` | Cập nhật thông tin hoặc đổi nhân viên chăm sóc. |
-| GET | `/customers/{id}/orders` | ADMIN, USER | Xem lịch sử đơn hàng của KH | Path: `id` | 200 OK - `List<OrderResponseDto>` | Liệt kê tất cả các đơn hàng khách hàng `{id}` đã đặt. |
+| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Quy tắc xử lý chính |
+| :--- | :--- | :--- | :--- | :--- |
+| GET | `/customers` | ADMIN, USER | Lấy danh sách khách hàng | Truy vấn danh sách khách hàng có phân trang. |
+| GET | `/customers/{id}` | ADMIN, USER | Xem thông tin 1 khách hàng | Xem chi tiết liên hệ và nhân viên Sales Rep phụ trách. |
+| POST | `/customers` | ADMIN, USER | Tạo mới hồ sơ khách hàng | Lưu thông tin khách hàng và gán nhân viên chăm sóc. |
+| PUT | `/customers/{id}` | ADMIN, USER | Cập nhật hồ sơ khách hàng | Cập nhật thông tin hoặc đổi nhân viên chăm sóc. |
+| GET | `/customers/{id}/orders` | ADMIN, USER | Xem lịch sử đơn hàng của KH | Liệt kê tất cả các đơn hàng khách hàng `{id}` đã đặt. |
 
 ### 2.3. Phân hệ Sản phẩm (Products)
 
 Mục tiêu: Quản lý danh mục hàng hóa, niêm yết giá và kiểm soát số lượng tồn kho.
 
-| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Request Body / Params | Response | Quy tắc xử lý chính |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| GET | `/products` | ADMIN, USER | Lấy danh sách sản phẩm | Query: `?page=0&size=10` | 200 OK - `List<ProductDto>` | Lọc theo tên sản phẩm, khoảng giá hoặc trạng thái kho. |
-| GET | `/products/{id}` | ADMIN, USER | Xem chi tiết sản phẩm | Path: `id` | 200 OK - `ProductDto` | Truy xuất tên, đơn giá hiện tại và số lượng tồn kho. |
-| POST | `/products` | ADMIN | Thêm mới sản phẩm và sửa số lượng | `ProductRequest` (name, qty, price) | 201 Created - `ProductDto` | Ràng buộc số lượng và đơn giá. Xác thực người dùng admin. |
-| PATCH | `/products/{id}` | ADMIN | Cập nhật thông tin thương mại | Path: `id`; Body: `ProductUpdateRequest` (name, price, status) | 200 OK - `ProductDto` | Cập nhật thông tin sản phẩm. |
+| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Quy tắc xử lý chính |
+| :--- | :--- | :--- | :--- | :--- |
+| GET | `/products` | ADMIN, USER | Lấy danh sách sản phẩm | Lọc theo tên sản phẩm, khoảng giá hoặc trạng thái kho. |
+| GET | `/products/{id}` | ADMIN, USER | Xem chi tiết sản phẩm | Truy xuất tên, đơn giá hiện tại và số lượng tồn kho. |
+| POST | `/products` | ADMIN | Thêm mới sản phẩm và sửa số lượng | Ràng buộc số lượng và đơn giá. Xác thực người dùng admin. |
+| PATCH | `/products/{id}` | ADMIN | Cập nhật thông tin thương mại | Cập nhật thông tin sản phẩm. |
 
 ### 2.4. Phân hệ Đơn hàng (Orders & Order Details)
 
 Mục tiêu: Xử lý giao dịch mua bán trọn gói (gộp chung thông tin Order và Order Details).
 
-| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Request Body / Params | Response | Quy tắc xử lý chính |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| GET | `/orders` | ADMIN, USER | Lấy danh sách đơn hàng | Query: `?page=0&size=10` | 200 OK - `List<OrderSummaryDto>` | Hiển thị thông tin tóm tắt các đơn hàng (không kèm danh sách sản phẩm). |
-| GET | `/orders/{id}` | ADMIN, USER | Xem chi tiết đơn hàng | Path: `id` | 200 OK - `OrderDetailResponse` | Trả về thông tin chung kèm danh sách sản phẩm (`order_details`). |
-| POST | `/orders` | ADMIN, USER | Tạo đơn hàng mới | `OrderRequest` (customerId, employeeId, `List<Items>`) | 201 Created - `OrderDetailResponse` | Chạy trong 1 Transaction: kiểm tra đủ tồn kho -> tạo đơn & chi tiết đơn -> trừ kho. |
-| PATCH | `/orders/{id}` | ADMIN, USER | Cập nhật trạng thái đơn hàng | Path: `id`; Body: `OrderRequest` | 200 OK - `OrderDetailResponse` | Cập nhật trạng thái một chiều (PENDING -> SHIPPING -> COMPLETED). Nếu chuyển sang CANCELLED từ PENDING/SHIPPING: chạy Transaction đổi trạng thái và cộng hoàn kho theo `order_details`. Chặn tuyệt đối nếu đơn đã COMPLETED hoặc CANCELLED. Cho phép thay đổi số lượng sản phẩm khi đơn hàng ở trạng thái PENDING. |
+| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Quy tắc xử lý chính |
+| :--- | :--- | :--- | :--- | :--- |
+| GET | `/orders` | ADMIN, USER | Lấy danh sách đơn hàng | Hiển thị thông tin tóm tắt các đơn hàng (không kèm danh sách sản phẩm). |
+| GET | `/orders/{id}` | ADMIN, USER | Xem chi tiết đơn hàng | Trả về thông tin chung kèm danh sách sản phẩm (`order_details`). |
+| POST | `/orders` | ADMIN, USER | Tạo đơn hàng mới | Chạy trong 1 Transaction: kiểm tra đủ tồn kho -> tạo đơn & chi tiết đơn -> trừ kho. |
+| PATCH | `/orders/{id}` | ADMIN, USER | Cập nhật trạng thái đơn hàng | Cập nhật trạng thái một chiều (PENDING -> SHIPPING -> COMPLETED). Nếu chuyển sang CANCELLED từ PENDING/SHIPPING: chạy Transaction đổi trạng thái và cộng hoàn kho theo `order_details`. Chặn tuyệt đối nếu đơn đã COMPLETED hoặc CANCELLED. Cho phép thay đổi số lượng sản phẩm khi đơn hàng ở trạng thái PENDING. |
 
 ### 2.5. Định dạng phản hồi lỗi
 
@@ -333,9 +333,9 @@ BTL-KTPM/
     │   │   ├── Order.java, OrderDetail.java, OrderDetailId.java (khóa chính phức hợp)
     │   │   └── OrderStatus.java, ProductStatus.java (enum trạng thái)
     │   ├── Model/
-    │   │   ├── Request/           # DTO đầu vào, kèm ràng buộc validation
-    │   │   └── Response/          # DTO đầu ra
-    │   ├── Mapper/                # Chuyển đổi Entity <-> DTO
+    │   │   ├── Request/           # Model đầu vào, kèm ràng buộc validation
+    │   │   └── Response/          # Model đầu ra
+    │   ├── Mapper/                # Chuyển đổi Entity <- > Model
     │   ├── Security/              # SecurityConfig, JwtTokenProvider, JwtAuthenticationFilter
     │   └── Exceptions/            # Exception tùy biến + GlobalExceptionHandler
     └── resources/
