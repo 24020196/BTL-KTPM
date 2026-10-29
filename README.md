@@ -39,7 +39,7 @@ Chi tiết quy trình và quy tắc nghiệp vụ của từng phân hệ (Xác 
 - **Base URL:** `http://localhost:3000/api/v1`
 - **Tài liệu tương tác (Swagger UI):** `http://localhost:3000/swagger-ui/index.html`
 - **File đặc tả OpenAPI (JSON):** [`docs/openapi.json`](./docs/openapi.json)
-- **Xem chi tiết đặc tả các endpoint & mã lỗi tại:** [`docs/api-specification.md`](./docs/api-specification.md)
+- **Xem chi tiết đặc tả các endpoint:** [`docs/api-specification.md`](./docs/api-specification.md)
 
 ---
 
@@ -141,17 +141,6 @@ BTL-KTPM/
 | Mapper | Chuyển đổi Entity và DTO | `ProductMapper.patchEntity` |
 | Exceptions | Chuẩn hóa định dạng lỗi JSON trả về Client | `GlobalExceptionHandler` |
 
-### 5.5. Ánh xạ cơ chế xử lý (Phần 3) vào mã nguồn
-
-| Vấn đề | Cơ chế | Vị trí trong mã nguồn |
-| :--- | :--- | :--- |
-| Ghi đè tồn kho | Tách API cập nhật thông tin (`PATCH`) khỏi tồn kho | `ProductController`, `ProductPatchRequest` |
-| Đứt gãy giao dịch | `@Transactional` bao toàn bộ nghiệp vụ đơn hàng | `OrderService` |
-| Overselling | `@Lock(PESSIMISTIC_WRITE)` sinh `SELECT ... FOR UPDATE` | `ProductRepository.findAllByIdWithLock` |
-| Deadlock | Lọc trùng và sắp xếp `productCode` tăng dần trước khi khóa | `OrderService.createOrder`, `OrderService.patchOrder` |
-| Cập nhật đồng thời cùng bản ghi | Khóa lạc quan `@Version`, trả về 409 Conflict | `Order.java`, `Product.java`, `GlobalExceptionHandler` |
-| Nhập hàng trùng tên | Tự động cộng dồn `quantityInStock`, cập nhật `buyPrice` nếu khác giá | `ProductService.createProduct`, `ProductRepository.findFirstByProductName` |
-
 ### 5.6. Cơ sở dữ liệu
 
 | Bảng | Khóa chính | Khóa ngoại / Ràng buộc |
@@ -239,8 +228,6 @@ Dữ liệu MySQL được lưu trong named volume `mysql-data`, không bị m�
 | Stage 1 - Builder | `maven:3.9.6-amazoncorretto-21` | Copy `pom.xml` và tải dependency trước (`mvn dependency:go-offline`) để tận dụng Docker cache, sau đó copy mã nguồn và đóng gói (`mvn clean package -DskipTests`) |
 | Stage 2 - Runtime | `amazoncorretto:21-alpine` | Chỉ copy file `.jar` thành phẩm từ Stage 1 và chạy `java -jar app.jar` |
 
-Lợi ích: image cuối nhẹ, không chứa mã nguồn và công cụ build; khi chỉ sửa code Java, Docker không phải tải lại dependency.
-
 ### 6.5. Kiểm tra sau khi triển khai
 
 1. Mở Swagger UI: `http://localhost:3000/swagger-ui/index.html`
@@ -251,7 +238,7 @@ Lợi ích: image cuối nhẹ, không chứa mã nguồn và công cụ build; 
 
 ## PHẦN 7: THỬ NGHIỆM TẢI VÀ ĐO ĐẠC HIỆU NĂNG TRÊN KAGGLE (BENCHMARK & LOAD TESTING)
 
-Kiểm thử tải được chạy tự động trên Kaggle Notebook: [`benchmark-load-testing-ktpm.ipynb`](./benchmark-load-testing-ktpm.ipynb). Số liệu dưới đây lấy từ output đã lưu trong notebook (Cell 8 - 10).
+Kiểm thử tải được chạy tự động trên Kaggle Notebook: [`benchmark-load-testing-ktpm.ipynb`](./benchmark-load-testing-ktpm.ipynb).
 
 ### 7.1. Môi trường và tham số
 
