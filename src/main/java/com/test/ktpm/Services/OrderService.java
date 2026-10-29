@@ -58,7 +58,6 @@ public class OrderService {
                 .sorted()
                 .toList();
 
-
         List<Product> lockedProducts = productRepository.findAllByIdWithLock(productCodes);
         Map<Long, Product> productMap = lockedProducts.stream()
                 .collect(Collectors.toMap(Product::getProductCode, Function.identity()));

@@ -14,6 +14,8 @@ import org.springframework.http.MediaType;
 import java.math.BigDecimal;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -55,7 +57,7 @@ public class ProductControllerTest extends BaseIntegrationTest {
     @Test
     @DisplayName("3. Admin tạo mới sản phẩm -> 201 Created")
     void testCreateProduct_AdminSuccess() throws Exception {
-        ProductRequest request = testData.createProductRequest("Tai nghe Bluetooth", 50, new BigDecimal("1200000"));
+        ProductRequest request = testData.createProductRequest("Tai nghe Bluetooth", 50, new BigDecimal("1200000.00"));
 
         mockMvc.perform(post("/api/v1/products")
                         .header(HttpHeaders.AUTHORIZATION, getAdminToken())
@@ -67,9 +69,69 @@ public class ProductControllerTest extends BaseIntegrationTest {
     }
 
     @Test
+    @DisplayName("3b. Admin POST sản phẩm cùng tên -> Cộng dồn số lượng, cập nhật giá mới nếu khác, giữ nguyên ID")
+    void testCreateProduct_SameName_IncreasesQuantityAndUpdatesPrice() throws Exception {
+        ProductRequest request1 = testData.createProductRequest("Chuột không dây", 20, new BigDecimal("300000.00"));
+
+        String response1 = mockMvc.perform(post("/api/v1/products")
+                        .header(HttpHeaders.AUTHORIZATION, getAdminToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request1)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.qty", is(20)))
+                .andExpect(jsonPath("$.price", is(300000.00)))
+                .andReturn().getResponse().getContentAsString();
+
+        Long firstId = objectMapper.readTree(response1).get("id").asLong();
+
+        ProductRequest request2 = testData.createProductRequest("Chuột không dây", 15, new BigDecimal("350000.00"));
+
+        mockMvc.perform(post("/api/v1/products")
+                        .header(HttpHeaders.AUTHORIZATION, getAdminToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request2)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", is(firstId.intValue())))
+                .andExpect(jsonPath("$.qty", is(35)))
+                .andExpect(jsonPath("$.price", is(350000.00)))
+                .andExpect(jsonPath("$.name", is("Chuột không dây")));
+
+        assertEquals(1, testData.getProductRepository().count());
+    }
+
+    @Test
+    @DisplayName("3c. Admin POST sản phẩm khác chữ hoa/thường -> Tạo thành 2 sản phẩm khác nhau (case-sensitive)")
+    void testCreateProduct_DifferentCase_CreatesNewProduct() throws Exception {
+        ProductRequest request1 = testData.createProductRequest("Chuột Gaming", 10, new BigDecimal("400000.00"));
+
+        String response1 = mockMvc.perform(post("/api/v1/products")
+                        .header(HttpHeaders.AUTHORIZATION, getAdminToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request1)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        Long firstId = objectMapper.readTree(response1).get("id").asLong();
+
+        ProductRequest request2 = testData.createProductRequest("chuột gaming", 5, new BigDecimal("400000.00"));
+
+        String response2 = mockMvc.perform(post("/api/v1/products")
+                        .header(HttpHeaders.AUTHORIZATION, getAdminToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request2)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        Long secondId = objectMapper.readTree(response2).get("id").asLong();
+
+        assertNotEquals(firstId, secondId);
+        assertEquals(2, testData.getProductRepository().count());
+    }
+
+    @Test
     @DisplayName("4. User thường tạo sản phẩm -> 403 Forbidden")
     void testCreateProduct_UserRoleForbidden() throws Exception {
-        ProductRequest request = testData.createProductRequest("USB 64GB", 100, new BigDecimal("150000"));
+        ProductRequest request = testData.createProductRequest("USB 64GB", 100, new BigDecimal("150000.00"));
 
         mockMvc.perform(post("/api/v1/products")
                         .header(HttpHeaders.AUTHORIZATION, getUserToken())
@@ -86,7 +148,7 @@ public class ProductControllerTest extends BaseIntegrationTest {
     void testPatchProduct_AdminSuccess() throws Exception {
         Product product = testData.createDefaultProduct("Sản phẩm cần sửa", 20);
 
-        ProductPatchRequest patchRequest = testData.createProductPatchRequest("Tên mới sau sửa", new BigDecimal("350000"), ProductStatus.ACTIVE);
+        ProductPatchRequest patchRequest = testData.createProductPatchRequest("Tên mới sau sửa", new BigDecimal("350000.00"), ProductStatus.ACTIVE);
 
         mockMvc.perform(patch("/api/v1/products/" + product.getProductCode())
                         .header(HttpHeaders.AUTHORIZATION, getAdminToken())
@@ -101,7 +163,7 @@ public class ProductControllerTest extends BaseIntegrationTest {
     void testPatchProduct_UserRoleForbidden() throws Exception {
         Product product = testData.createDefaultProduct("Sản phẩm cấm sửa", 20);
 
-        ProductPatchRequest patchRequest = testData.createProductPatchRequest("Cố tình sửa", new BigDecimal("100000"), null);
+        ProductPatchRequest patchRequest = testData.createProductPatchRequest("Cố tình sửa", new BigDecimal("100000.00"), null);
 
         mockMvc.perform(patch("/api/v1/products/" + product.getProductCode())
                         .header(HttpHeaders.AUTHORIZATION, getUserToken())

@@ -14,6 +14,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class ProductService {
@@ -36,6 +38,19 @@ public class ProductService {
 
     @Transactional
     public ProductResponse createProduct(ProductRequest request) {
+        String trimmedName = request.getName() != null ? request.getName().trim() : "";
+        Optional<Product> existingOpt = productRepository.findFirstByProductName(trimmedName);
+
+        if (existingOpt.isPresent() && existingOpt.get().getProductName().equals(trimmedName)) {
+            Product existingProduct = existingOpt.get();
+            existingProduct.setQuantityInStock(existingProduct.getQuantityInStock() + request.getQty());
+            if (request.getPrice() != null && existingProduct.getBuyPrice().compareTo(request.getPrice()) != 0) {
+                existingProduct.setBuyPrice(request.getPrice());
+            }
+            Product savedProduct = productRepository.save(existingProduct);
+            return productMapper.toResponse(savedProduct);
+        }
+
         Product product = productMapper.toEntity(request);
         Product savedProduct = productRepository.save(product);
         return productMapper.toResponse(savedProduct);
@@ -68,4 +83,3 @@ public class ProductService {
         productRepository.save(product);
     }
 }
-
