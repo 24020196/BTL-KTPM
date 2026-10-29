@@ -52,20 +52,17 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy khách hàng với mã: " + request.getCustomerNumber()));
 
-        // 1. Lock Ordering chống Deadlock: Lấy danh sách productCode duy nhất và sắp
-        // xếp tăng dần
         List<Long> productCodes = request.getItems().stream()
                 .map(OrderItemRequest::getProductCode)
                 .distinct()
                 .sorted()
                 .toList();
 
-        // 2. Khóa bi quan (SELECT ... FOR UPDATE) theo thứ tự ID tăng dần
+
         List<Product> lockedProducts = productRepository.findAllByIdWithLock(productCodes);
         Map<Long, Product> productMap = lockedProducts.stream()
                 .collect(Collectors.toMap(Product::getProductCode, Function.identity()));
 
-        // Kiểm tra tồn tại
         for (Long code : productCodes) {
             if (!productMap.containsKey(code)) {
                 throw new ResourceNotFoundException("Không tìm thấy sản phẩm với mã: " + code);
@@ -178,7 +175,6 @@ public class OrderService {
         }
 
         if (request.getItems() != null && !request.getItems().isEmpty()) {
-            // Tập hợp tất cả productCodes (cả sản phẩm cũ cần hoàn và sản phẩm mới cần trừ)
             Set<Long> allProductCodes = new HashSet<>();
             for (OrderDetail detail : order.getOrderDetails()) {
                 allProductCodes.add(detail.getProduct().getProductCode());
@@ -191,27 +187,19 @@ public class OrderService {
             List<Product> lockedProducts = productRepository.findAllByIdWithLock(sortedCodes);
             Map<Long, Product> productMap = lockedProducts.stream()
                     .collect(Collectors.toMap(Product::getProductCode, Function.identity()));
-
-            // Kiểm tra các sản phẩm mới có tồn tại không
             for (OrderItemRequest itemRequest : request.getItems()) {
                 if (!productMap.containsKey(itemRequest.getProductCode())) {
                     throw new ResourceNotFoundException(
                             "Không tìm thấy sản phẩm với mã: " + itemRequest.getProductCode());
                 }
             }
-
-            // Hoàn kho cho items cũ
             for (OrderDetail detail : order.getOrderDetails()) {
                 Product product = productMap.get(detail.getProduct().getProductCode());
                 if (product != null) {
                     productService.increaseStock(product, detail.getQuantityOrdered());
                 }
             }
-
-            // Xóa items cũ
             order.getOrderDetails().clear();
-
-            // Tạo items mới & trừ kho
             BigDecimal totalAmount = BigDecimal.ZERO;
             for (OrderItemRequest itemRequest : request.getItems()) {
                 Product product = productMap.get(itemRequest.getProductCode());
