@@ -251,98 +251,121 @@ Lợi ích: image cuối nhẹ, không chứa mã nguồn và công cụ build; 
 
 ## PHẦN 7: THỬ NGHIỆM TẢI VÀ ĐO ĐẠC HIỆU NĂNG TRÊN KAGGLE (BENCHMARK & LOAD TESTING)
 
-Toàn bộ quy trình kiểm thử tải (Stress / Load Testing) và giám sát tài nguyên phần cứng được thực nghiệm tự động trên môi trường **Kaggle Notebook** (File: [`benchmark-load-testing-ktpm.ipynb`](./benchmark-load-testing-ktpm.ipynb)). Kịch bản kiểm thử được thiết kế tối đa hóa độ bao phủ (Comprehensive End-to-End Testing), mô phỏng đồng thời 3 Persona người dùng chân thực và kiểm tra tính toàn vẹn CSDL sâu sau khi hoàn thành.
+Toàn bộ quy trình kiểm thử tải và giám sát tài nguyên được chạy tự động trên **Kaggle Notebook** (File: [`benchmark-load-testing-ktpm.ipynb`](./benchmark-load-testing-ktpm.ipynb)). Kịch bản mô phỏng đồng thời 3 Persona người dùng và kiểm tra lại CSDL sau khi chạy. Mọi số liệu dưới đây lấy trực tiếp từ output đã lưu trong notebook (Cell 8–10).
 
 ### 7.1. Môi trường và công cụ thử nghiệm
 
-- **Hạ tầng thực thi:** Kaggle Linux Environment (Ubuntu 24.04 x86_64, 4 vCPU, 30GB RAM, không GPU).
+- **Hạ tầng thực thi:** Kaggle Linux Environment (Ubuntu 24.04 x86_64, 4 vCPU, 30GB RAM, không GPU). Ứng dụng, MySQL và Locust chạy chung một máy.
 - **Runtime & Database:**
   - OpenJDK 21 (`21.0.12.1-Ubuntu`).
   - MySQL Server 8.0 (`8.0.46`).
   - JVM Memory Tuning: `-Xms512m -Xmx1536m`.
 - **Framework kiểm thử:** **Locust** (Headless mode) kết hợp thư viện `psutil` để thu thập tài nguyên hệ thống (CPU Total, CPU Per-core & RAM) mỗi chu kỳ 1.0 giây.
-- **Tham số tải tối đa:**
+- **Tham số tải:**
   - **Số lượng Virtual Users (Concurrency):** `100 users`.
   - **Tốc độ sinh tải (Spawn rate):** `10 users/giây`.
   - **Thời gian chạy thử nghiệm:** `2 phút 30 giây` (150 giây).
+- **Dữ liệu seed:** 1 tài khoản admin, 3 khách hàng, 8 sản phẩm; sản phẩm Hot (mã 1) có tồn kho ban đầu 200.
 
-### 7.2. Kịch bản kiểm thử đa Persona & Tương tranh tối đa (Multi-Persona & Stress Scenarios)
+### 7.2. Kịch bản kiểm thử đa Persona (Multi-Persona Scenarios)
 
-Hệ thống kiểm thử bao phủ toàn bộ 14 API trên 5 Controller thông qua 3 nhóm người dùng ảo (Personas) chạy song song:
+Hệ thống kiểm thử gọi tới 14 API trên 5 Controller thông qua 3 nhóm người dùng ảo (Personas) chạy song song:
 
 1. **Persona 1: CustomerShopperUser (Tỷ trọng 70%) - Luồng mua sắm tuần tự:**
    - **Xác thực (`00_POST_auth_register`, `00_POST_auth_login`):** Tự động đăng ký và đăng nhập tài khoản riêng để nhận JWT Token.
    - **Tra cứu sản phẩm (`01_GET_products_page`, `02_GET_product_detail`):** Đọc danh mục phân trang và chi tiết ngẫu nhiên từng sản phẩm.
    - **Hồ sơ khách hàng (`03_GET_customer_detail`, `04_GET_customer_orders`):** Xem thông tin khách hàng và lịch sử các đơn hàng đã đặt.
-   - **Tạo đơn hàng cạnh tranh (`05_POST_orders_hot_product`):** Đặt mua sản phẩm Hot (kho ban đầu 200 đơn vị) nhằm kiểm thử khóa bi quan `@Lock(PESSIMISTIC_WRITE)` (`SELECT ... FOR UPDATE`) và chống bán vượt tồn kho (Overselling). Khi hết hàng, hệ thống trả về lỗi 400 hợp lệ (`05_POST_orders_hot_out_of_stock`).
+   - **Tạo đơn hàng cạnh tranh (`05_POST_orders_hot_product`):** Đặt mua sản phẩm Hot nhằm kiểm thử khóa bi quan `@Lock(PESSIMISTIC_WRITE)` (`SELECT ... FOR UPDATE`) và chống bán vượt tồn kho (Overselling). Khi hết hàng, hệ thống trả về lỗi 400 hợp lệ (`05_POST_orders_hot_out_of_stock`).
    - **Tạo đơn nhiều sản phẩm chống Deadlock (`06_POST_orders_multi_product`):** Đặt đơn chứa nhiều sản phẩm với thứ tự xáo trộn ngẫu nhiên để kiểm thử cơ chế sắp xếp mã sản phẩm tăng dần trước khi khóa dòng.
    - **Xem chi tiết đơn (`07_GET_order_detail`):** Truy vấn thông tin chi tiết đơn hàng vừa tạo.
-   - **Hủy đơn hoàn kho (`08_PATCH_order_cancel`):** Hủy đơn PENDING để kiểm tra cập nhật trạng thái và transaction hoàn trả số lượng tồn kho tự động.
+   - **Hủy đơn (`08_PATCH_order_cancel`):** Gửi `PATCH /orders/{id}` với trạng thái `CANCELLED` bằng token của chính user mua hàng.
    - **Kiểm thử phân quyền (`09_GET_users_forbidden_test`):** User thường thử gọi API Admin (`GET /api/v1/users`) để xác nhận hệ thống chặn đúng lỗi `403 Forbidden`.
 
 2. **Persona 2: WarehouseAdminUser (Tỷ trọng 20%) - Quản trị kho & Vận hành đơn hàng:**
    - **Quản trị người dùng (`10_ADMIN_GET_users`):** Tra cứu danh sách tài khoản người dùng với quyền `ROLE_ADMIN`.
-   - **Nhập hàng cộng dồn (`11_ADMIN_POST_products_restock_merge`):** Gọi `POST /api/v1/products` với tên sản phẩm đã có sẵn để kiểm thử tính năng tự động cộng dồn số lượng tồn kho và cập nhật giá mới ngay dưới áp lực tải đồng thời.
+   - **Nhập hàng cộng dồn (`11_ADMIN_POST_products_restock_merge`):** Gọi `POST /api/v1/products` với tên sản phẩm đã có sẵn để kiểm thử tính năng tự động cộng dồn số lượng tồn kho và cập nhật giá mới dưới tải đồng thời.
    - **Cập nhật sản phẩm (`12_ADMIN_PATCH_product`):** Điều chỉnh giá bán và trạng thái sản phẩm bằng `PATCH`.
    - **Cập nhật khách hàng (`13_ADMIN_PUT_customer_update`):** Cập nhật thông tin liên hệ của khách hàng bằng `PUT`.
    - **Duyệt chu trình đơn hàng (`14_ADMIN_GET_orders_pipeline`, `15_ADMIN_PATCH_order_to_shipping`, `16_ADMIN_PATCH_order_to_completed`):** Quét các đơn `PENDING` chuyển sang `SHIPPING` và từ `SHIPPING` chuyển sang `COMPLETED`.
 
 3. **Persona 3: FlashSaleSpammerUser (Tỷ trọng 10%) - Săn sale tần suất cao:**
-   - Nhịp gửi yêu cầu cực nhanh (`0.1s - 0.4s`): Bắn liên tục request đặt mua Hot Product (`17_SPAMMER_POST_hot_contention`) và tra cứu tồn kho (`18_SPAMMER_GET_hot_stock_poll`) nhằm đẩy mức độ tranh chấp khóa bi quan và chịu tải của hàng đợi CSDL lên mức cực hạn.
+   - Nhịp gửi yêu cầu cực nhanh (`0.1s - 0.4s`): Bắn liên tục request đặt mua Hot Product (`17_SPAMMER_POST_hot_contention`) và tra cứu tồn kho (`18_SPAMMER_GET_hot_stock_poll`) nhằm đẩy mức độ tranh chấp khóa bi quan lên cao.
 
 ### 7.3. Kết quả đo đạc định lượng (Locust Statistics)
 
-Dưới áp lực thử nghiệm tối đa của 3 Persona, Locust ghi nhận kết quả chi tiết trên toàn bộ 18 tác vụ:
+Locust ghi nhận **11.295 request** trong 150 giây (khoảng **75,8 RPS**), trong đó **392 request lỗi (3,5%)**. Bảng dưới đây lấy từ `kaggle_load_results_stats.csv` (Cell 10):
 
-| Method | Endpoint / Tác vụ | Persona | Failure Count | Median (ms) | P95 (ms) | Đánh giá & Cơ chế kiểm thử |
-| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| `POST` | `00_POST_auth_login` | Shopper | 0 | ~180 ms | ~410 ms | Xác thực BCrypt & sinh JWT token |
-| `POST` | `00_POST_auth_register` | Shopper | 0 | ~210 ms | ~320 ms | Mã hóa mật khẩu một chiều BCrypt |
-| `GET` | `01_GET_products_page` | Shopper | 0 | ~11 ms | ~45 ms | Đọc phân trang danh mục sản phẩm |
-| `GET` | `02_GET_product_detail` | Shopper | 0 | ~9 ms | ~30 ms | Đọc chi tiết sản phẩm theo ID |
-| `GET` | `03_GET_customer_detail` | Shopper | 0 | ~10 ms | ~32 ms | Đọc thông tin khách hàng |
-| `GET` | `04_GET_customer_orders` | Shopper | 0 | ~12 ms | ~35 ms | Đọc lịch sử đơn hàng của khách |
-| `POST` | `05_POST_orders_hot_product` | Shopper | 0 | ~48 ms | ~120 ms | Khóa dòng trừ kho, chống Overselling |
-| `POST` | `05_POST_orders_hot_out_of_stock` | Shopper | 0 | ~12 ms | ~20 ms | Từ chối chuẩn xác khi hết hàng tồn kho |
-| `POST` | `06_POST_orders_multi_product` | Shopper | 0 | ~45 ms | ~85 ms | Đơn nhiều món xáo trộn, chống Deadlock |
-| `GET` | `07_GET_order_detail` | Shopper | 0 | ~13 ms | ~40 ms | Đọc chi tiết đơn & order_details |
-| `PATCH` | `08_PATCH_order_cancel` | Shopper | 0 | ~44 ms | ~80 ms | Hủy đơn, tự động hoàn kho |
-| `GET` | `09_GET_users_forbidden_test` | Shopper | 0 | ~8 ms | ~25 ms | Bắt chuẩn xác 403 Forbidden |
-| `GET` | `10_ADMIN_GET_users` | Admin | 0 | ~12 ms | ~35 ms | Phân quyền ADMIN đọc danh sách User |
-| `POST` | `11_ADMIN_POST_products_restock_merge` | Admin | 0 | ~35 ms | ~75 ms | Cộng dồn kho & update giá khi trùng tên |
-| `PATCH` | `12_ADMIN_PATCH_product` | Admin | 0 | ~28 ms | ~65 ms | Cập nhật giá và trạng thái sản phẩm |
-| `PUT` | `13_ADMIN_PUT_customer_update` | Admin | 0 | ~25 ms | ~60 ms | Cập nhật thông tin khách hàng |
-| `PATCH` | `15_ADMIN_PATCH_order_to_shipping` | Admin | 0 | ~30 ms | ~70 ms | Chuyển đơn PENDING -> SHIPPING |
-| `PATCH` | `16_ADMIN_PATCH_order_to_completed` | Admin | 0 | ~28 ms | ~68 ms | Chuyển đơn SHIPPING -> COMPLETED |
-| `POST` | `17_SPAMMER_POST_hot_contention` | Spammer | 0 | ~50 ms | ~130 ms | Tranh chấp khóa bi quan tần suất cao |
-| `GET` | `18_SPAMMER_GET_hot_stock_poll` | Spammer | 0 | ~8 ms | ~22 ms | Kiểm tra nhanh tồn kho |
-| **Tổng** | **Aggregated Toàn Hệ Thống** | **Cả 3** | **0 (0.0%)** | **~14 ms** | **~85 ms** | **100% Request hợp lệ, không lỗi hệ thống** |
+| Method | Endpoint / Tác vụ | Persona | Requests | Lỗi | Median (ms) | P95 (ms) | P99 (ms) |
+| :--- | :--- | :---: | ---: | ---: | ---: | ---: | ---: |
+| `POST` | `00_POST_auth_login` | Shopper | 70 | 0 | 230 | 380 | 520 |
+| `POST` | `00_POST_auth_register` | Shopper | 70 | 0 | 330 | 480 | 560 |
+| `GET` | `01_GET_products_page` | Shopper | 742 | 0 | 9 | 55 | 160 |
+| `GET` | `02_GET_product_detail` | Shopper | 729 | 0 | 8 | 43 | 220 |
+| `GET` | `03_GET_customer_detail` | Shopper | 720 | 0 | 7 | 27 | 140 |
+| `GET` | `04_GET_customer_orders` | Shopper | 710 | 0 | 140 | 360 | 420 |
+| `POST` | `05_POST_orders_hot_product` | Shopper | 241 | 0 | 59 | 170 | 350 |
+| `POST` | `05_POST_orders_hot_out_of_stock` | Shopper | 250 | 0 | 10 | 20 | 48 |
+| `POST` | `06_POST_orders_multi_product` | Shopper | 339 | 0 | 36 | 74 | 210 |
+| `GET` | `07_GET_order_detail` | Shopper | 463 | 0 | 10 | 18 | 41 |
+| `PATCH` | `08_PATCH_order_cancel` | Shopper | 114 | **114 (403)** | 6 | 14 | 18 |
+| `GET` | `09_GET_users_forbidden_test` | Shopper | 149 | 0 | 7 | 14 | 24 |
+| `GET` | `10_ADMIN_GET_users` | Admin | 324 | 0 | 9 | 92 | 230 |
+| `POST` | `11_ADMIN_POST_products_restock_merge` | Admin | 321 | **49 (409)** | 27 | 77 | 280 |
+| `PATCH` | `12_ADMIN_PATCH_product` | Admin | 314 | **22 (409)** | 26 | 51 | 170 |
+| `PUT` | `13_ADMIN_PUT_customer_update` | Admin | 309 | **207 (500)** | 18 | 55 | 140 |
+| `GET` | `14_ADMIN_GET_orders_pipeline` | Admin | 304 | 0 | 17 | 29 | 49 |
+| `PATCH` | `15_ADMIN_PATCH_order_to_shipping` | Admin | 10 | 0 | 59 | 190 | 190 |
+| `PATCH` | `16_ADMIN_PATCH_order_to_completed` | Admin | 10 | 0 | 38 | 49 | 49 |
+| `POST` | `17_SPAMMER_POST_hot_contention` | Spammer | 1.849 | 0 | 50 | 180 | 360 |
+| `POST` | `17_SPAMMER_POST_hot_out_of_stock` | Spammer | 2.330 | 0 | 10 | 20 | 50 |
+| `GET` | `18_SPAMMER_GET_hot_stock_poll` | Spammer | 927 | 0 | 8 | 19 | 78 |
+| **Tổng** | **Aggregated** | **Cả 3** | **11.295** | **392 (3,5%)** | **12** | **170** | **350** |
 
-### 7.4. Xác minh tính toàn vẹn CSDL sau bài test (Deep Database Integrity Verification)
+**Phân tích các request lỗi** (theo Error report của Locust, Cell 8):
 
-Sau khi Locust hoàn thành bài test tải, script kiểm tra CSDL độc lập (`Cell 9`) kết nối trực tiếp vào MySQL để thẩm định toàn diện:
+| Số lần | Tác vụ | Mã lỗi | Nguyên nhân | Đánh giá |
+| ---: | :--- | :---: | :--- | :--- |
+| 114 | `08_PATCH_order_cancel` | 403 | `PATCH /orders/{id}` chỉ dành cho ADMIN (`@PreAuthorize("hasRole('ADMIN')")` trong `OrderController`), nhưng kịch bản gửi bằng token của user thường | Phân quyền hoạt động đúng; **kịch bản test cần dùng token admin** để kiểm thử được hủy đơn và hoàn kho |
+| 207 | `13_ADMIN_PUT_customer_update` | 500 | `Duplicate entry '0988889999'`: kịch bản gán cùng số điện thoại `0988889999` cho cả 3 khách hàng, vi phạm ràng buộc `UNIQUE` của cột `phone` | **Lỗi của hệ thống**: trùng số điện thoại cần được kiểm tra trước và trả `400`, thay vì để lỗi CSDL thành `500` |
+| 49 | `11_ADMIN_POST_products_restock_merge` | 409 | Hai admin cùng cập nhật một sản phẩm, khóa lạc quan `@Version` phát hiện xung đột | Đúng thiết kế (xem Phần 3): phiên ghi sau nhận `409 Conflict` thay vì ghi đè dữ liệu |
+| 22 | `12_ADMIN_PATCH_product` | 409 | Như trên | Đúng thiết kế |
 
-1. **Tồn kho không âm:** Kiểm tra toàn bộ bảng `products`, xác nhận `quantity_in_stock >= 0` tuyệt đối (không có bất kỳ sản phẩm nào bị âm).
-2. **Cân bằng số lượng (Stock Balancing):**
-   $$\text{Tồn kho hiện tại} + \text{Số lượng đã bán (các đơn không bị hủy)} = \text{Tồn kho ban đầu} + \text{Tổng số lượng nhập thêm}$$
-   - Sản phẩm Hot (kho ban đầu 200) được bán hết sạch (về đúng 0), không xảy ra tình trạng bán vượt quá số lượng (Zero Overselling).
-   - Các sản phẩm trong đơn nhiều món (Multi-products) khớp chính xác 100% giữa số lượng trừ kho và số lượng trong bảng `order_details`.
-3. **Tính toàn vẹn của chu trình đơn hàng:**
-   - Các đơn hàng được phân bổ đầy đủ trên cả 4 trạng thái: `PENDING`, `SHIPPING`, `COMPLETED`, `CANCELLED`.
-   - Các đơn bị hủy (`CANCELLED`) đều được hoàn trả tồn kho đầy đủ, không làm sai lệch số lượng hàng hóa.
-4. **Kết luận kiểm định:** `DATABASE 100% CONSISTENT & INTEGRITY VERIFIED`.
+### 7.4. Xác minh tính toàn vẹn CSDL sau bài test
+
+Sau khi Locust hoàn thành, Cell 9 kết nối trực tiếp vào MySQL và ghi nhận:
+
+- **Tồn kho không âm:** `0` sản phẩm có `quantity_in_stock < 0`, không xảy ra bán vượt tồn kho (Zero Overselling).
+- **Đơn hàng:** 2.442 đơn hợp lệ, phân bổ trạng thái `{'COMPLETED': 10, 'PENDING': 2432}`. Không có đơn `SHIPPING` (10 đơn được chuyển sang `SHIPPING` đều đã được chuyển tiếp sang `COMPLETED`) và **không có đơn `CANCELLED`** (do toàn bộ request hủy đơn bị từ chối 403, xem 7.3).
+- **Sản phẩm được theo dõi:**
+
+| Sản phẩm | Còn lại | Đã bán (đơn không bị hủy) |
+| :--- | ---: | ---: |
+| Mã 1 (Hot) | 105 | 2.209 |
+| Mã 2 | 52.353 | 520 |
+| Mã 3 | 52.809 | 508 |
+| Mã 4 | 49.499 | 501 |
+
+Do Persona Admin liên tục nhập thêm hàng (`11_ADMIN_POST_products_restock_merge`), tồn kho cuối cùng lớn hơn tồn kho ban đầu trừ số đã bán. Notebook hiện **chưa ghi lại tổng số lượng nhập thêm**, nên mới kiểm tra được điều kiện tồn kho không âm, chưa kiểm tra được đẳng thức cân bằng `tồn kho ban đầu + nhập thêm = còn lại + đã bán`.
 
 ### 7.5. Phân tích thống kê & Tài nguyên hệ thống (CPU, RAM, RPS, Latency)
 
-Biểu đồ trực quan 3 bảng điều khiển (3 Subplots) được xuất ra file [kaggle_load_benchmark.png](./docs/images/benchmark_kaggle_chart.png):
+Biểu đồ 3 bảng (3 Subplots) của lần chạy này được xuất ra file [`kaggle_load_benchmark.png`](./kaggle_load_benchmark.png):
 
 1. **Bảng 1 - System Resource Utilization (CPU & RAM):**
-   - **CPU:** Tăng cao trong 15-20 giây đầu khi các User đồng loạt khởi tạo và đăng ký tài khoản (do thuật toán băm BCrypt tiêu tốn CPU), sau đó ổn định ở mức 25% – 45% trong suốt quá trình sustain tải.
-   - **RAM:** Tổng bộ nhớ RAM toàn máy (chạy đồng thời Spring Boot JVM, MySQL Server 8 và Locust Runner) giữ ổn định ở mức 2.0 – 2.2 GB, Garbage Collection hoạt động trơn tru không rò rỉ bộ nhớ.
+   - **CPU:** Tăng lên khoảng 90% trong khoảng 20 giây đầu, khi các user đồng loạt đăng ký và đăng nhập (BCrypt tốn nhiều CPU). Sau đó dao động trong khoảng 35% – 75%, có lúc lên khoảng 80%.
+   - **RAM:** RAM toàn máy (Spring Boot JVM, MySQL Server 8 và Locust) tăng dần từ khoảng 1,96 GB lên khoảng 2,2 GB trong suốt bài test.
 2. **Bảng 2 - Throughput (RPS) vs p95 Latency (ms):**
-   - Thông lượng toàn hệ thống duy trì đều đặn ở mức 35 – 45 requests/giây.
-   - P95 Latency toàn hệ thống giữ vững dưới 90 ms trong phần lớn thời gian chạy thử nghiệm.
+   - Thông lượng tăng trong khoảng 30 giây đầu rồi ổn định ở mức khoảng 75 – 80 requests/giây.
+   - P95 Latency lên khoảng 560 ms ở đầu bài test (pha đăng ký/đăng nhập), sau đó phần lớn thời gian ở mức khoảng 80 – 150 ms, có một đợt tăng lên khoảng 300 ms gần cuối.
 3. **Bảng 3 - Endpoint Latency Distribution (Median vs p95):**
-   - Các thao tác đọc dữ liệu (GET) có độ trễ cực thấp (Median 8 – 12 ms, P95 25 – 45 ms).
-   - Các thao tác ghi giao dịch có khóa dòng (POST Order, Nhập hàng) đạt độ trễ tối ưu (Median 35 – 50 ms, P95 70 – 130 ms).
-   - Các thao tác bảo mật (Login/Register) có độ trễ cao hơn do chủ đích thiết kế của BCrypt để chống brute-force.
+   - Các thao tác đọc đơn giản (GET sản phẩm, khách hàng, chi tiết đơn) có Median 7 – 10 ms, P95 dưới 60 ms.
+   - Các thao tác ghi có khóa dòng (đặt đơn hàng Hot của Shopper và Spammer, đặt đơn nhiều sản phẩm, nhập hàng) có Median 27 – 59 ms, P95 74 – 180 ms.
+   - `04_GET_customer_orders` chậm bất thường (Median 140 ms, P95 360 ms) vì API `GET /customers/{id}/orders` trả về toàn bộ lịch sử đơn hàng, không phân trang, trong khi số đơn tăng lên hơn 2.400 trong bài test.
+   - Các thao tác bảo mật (Login/Register) có độ trễ cao nhất (Median 230 – 330 ms) do thiết kế của BCrypt để chống brute-force.
+
+**Những điểm cần xử lý rút ra từ bài test:**
+
+- Sửa kịch bản hủy đơn trong notebook để dùng token admin, rồi chạy lại để kiểm thử được luồng hủy đơn và hoàn kho.
+- Kiểm tra trùng số điện thoại trong `CustomerService` và trả `400` thay vì `500`.
+- Bổ sung phân trang cho `GET /customers/{id}/orders`.
+- Ghi lại tổng số lượng nhập thêm trong notebook để kiểm tra được đẳng thức cân bằng tồn kho.
