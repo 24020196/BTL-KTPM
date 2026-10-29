@@ -8,7 +8,7 @@
 - [Phần 4: Những điểm gợi ý cải tiến ở Phase 2](#phần-4-những-điểm-gợi-ý-cải-tiến-ở-phase-2)
 - [Phần 5: Tổ chức mã nguồn](#phần-5-tổ-chức-mã-nguồn)
 - [Phần 6: Cài đặt và triển khai (Deploy)](#phần-6-cài-đặt-và-triển-khai-deploy)
-- [Phần 7: Thử nghiệm tải và đo đạc hiệu năng trên Kaggle (Benchmark & Load Testing)](#phần-7-thử-nghiệm-tải-và-đo-đạc-hiệu-năng-trên-kaggle-benchmark--load-testing)
+- [Phần 7: Kiểm thử tải và đường cơ sở hiệu năng Phase 1](#phần-7-kiểm-thử-tải-và-đường-cơ-sở-hiệu-năng-phase-1)
 
 ---
 
@@ -236,82 +236,55 @@ Dữ liệu MySQL được lưu trong named volume `mysql-data`, không bị m�
 
 ---
 
-## PHẦN 7: THỬ NGHIỆM TẢI VÀ ĐO ĐẠC HIỆU NĂNG TRÊN KAGGLE (BENCHMARK & LOAD TESTING)
+## PHẦN 7: KIỂM THỬ TẢI VÀ ĐƯỜNG CƠ SỞ HIỆU NĂNG PHASE 1
 
-Kiểm thử tải được chạy tự động trên Kaggle Notebook: [`benchmark-load-testing-ktpm.ipynb`](./benchmark-load-testing-ktpm.ipynb).
+Kết quả dưới đây là **đường cơ sở (baseline)** hiệu năng của Phase 1, để Phase 2 chạy lại cùng bộ kiểm thử và đối chiếu.
 
-### 7.1. Môi trường và tham số
+- **Phiên bản được đo:** commit `808b8634c7832932fc06b495b21c0094d3939cfe`
+- **Công cụ:** Locust 2.47.0, chạy trên Kaggle Notebook: [notebookf98e90cdff](https://www.kaggle.com/code/luc102t/notebookf98e90cdff)
+- **Môi trường:** AMD EPYC 7B12 (4 core), 31.3 GB RAM, OpenJDK 21, MySQL 8.0.46. Ứng dụng và MySQL dùng core 0-2, Locust dùng core 3.
+- **Kế hoạch kiểm thử:** [`docs/load-testing.md`](./docs/load-testing.md)
+- **Báo cáo đầy đủ:** [`docs/benchmark/phase1/REPORT.md`](./docs/benchmark/phase1/REPORT.md)
+- **Mã nguồn bộ kiểm thử:** [`loadtest/`](./loadtest)
 
-| Thành phần | Giá trị |
-| :--- | :--- |
-| Hạ tầng | Kaggle CPU: 4 vCPU, 30 GB RAM, Ubuntu 24.04. Ứng dụng, MySQL và Locust chạy chung một máy |
-| Runtime | OpenJDK 21.0.12.1, JVM `-Xms512m -Xmx1536m` |
-| Cơ sở dữ liệu | MySQL 8.0.46 |
-| Công cụ | Locust (headless), `psutil` đo CPU và RAM mỗi giây |
-| Tải | 100 users, tăng 10 users/giây, chạy 150 giây |
-| Dữ liệu seed | 1 admin, 3 khách hàng, 8 sản phẩm; sản phẩm Hot (mã 1) có tồn kho ban đầu 200 |
+### 7.1. Phương pháp
 
-### 7.2. Kịch bản kiểm thử
+Mọi bài bắt đầu từ cùng một CSDL sinh xác định (seed `20261029`: 1000 sản phẩm, 500 khách hàng, 20000 đơn hàng) và được khôi phục trước mỗi bài. Người dùng ảo gồm 80% khách mua hàng và 20% admin.
 
-Locust mô phỏng 3 nhóm người dùng chạy song song:
-
-| Nhóm người dùng | Tỷ trọng | Thao tác |
+| Bài | Cấu hình | Mục đích |
 | :--- | :--- | :--- |
-| Shopper | 70% | Đăng ký, đăng nhập; xem sản phẩm, khách hàng, lịch sử đơn; đặt đơn sản phẩm Hot; đặt đơn nhiều sản phẩm với thứ tự xáo trộn; xem và hủy đơn; gọi thử API của Admin để kiểm tra lỗi 403 |
-| Admin | 20% | Xem danh sách user; nhập thêm hàng cho sản phẩm trùng tên; sửa sản phẩm; sửa khách hàng; chuyển đơn `PENDING` -> `SHIPPING` -> `COMPLETED` |
-| Spammer | 10% | Gửi liên tục (0.1 - 0.4 giây/lần) yêu cầu đặt mua và tra cứu tồn kho sản phẩm Hot để tăng tranh chấp khóa dòng |
+| Smoke | 5 người dùng ảo, 30 s | Kiểm tra kịch bản và API |
+| Warmup | 50 người dùng ảo, 60 s | Làm nóng JVM và bộ đệm; không tính vào kết quả |
+| Tải thường | 100 người dùng ảo, 180 s, lặp 3 lần | Đo hiệu năng ở tải dự kiến và độ dao động |
+| Breakpoint | 25 → 800 người dùng ảo, mỗi bậc 60 s | Tìm năng lực tối đa và nút thắt |
+| Spike | 50 → 500 → 50 người dùng ảo | Kiểm tra chịu sốc tải và hồi phục |
+| Flash sale | 200 người dùng ảo mua 1 sản phẩm (tồn kho 500) | Kiểm tra khóa dòng, không bán vượt |
 
-### 7.3. Kết quả tổng hợp
+Tiêu chí đạt: p95 ≤ 500 ms, p99 ≤ 1000 ms, lỗi ≤ 1%. Sau mỗi bài, tồn kho được đối soát theo công thức: tồn sau = tồn trước − đã bán + hoàn kho + nhập thêm.
 
-| Chỉ số | Giá trị |
+### 7.2. Kết quả
+
+Cả 6 tiêu chí đều đạt; 8/8 bài có tồn kho cân bằng.
+
+| Bài | Kết quả |
 | :--- | :--- |
-| Tổng request | 11295 |
-| Request lỗi | 392 (3.5%) |
-| Throughput | 75.8 RPS |
-| Median / P95 / P99 | 12 ms / 170 ms / 350 ms |
+| Smoke | 208 request, lỗi 0% |
+| Tải thường | 53.5 req/s; p50 6.0 ms, p95 48.1 ms, p99 79.6 ms; lỗi 0% |
+| Breakpoint | Tối đa trong SLO: **307.4 req/s** tại 300 người dùng ảo; p95 vượt 500 ms từ 400 người dùng ảo |
+| Spike | Lỗi 0%; p95 từ 43.1 ms lên 115.9 ms; hồi phục sau 10 s |
+| Flash sale | Bán 500/500, bán vượt 0, deadlock 0 |
 
-Độ trễ theo nhóm thao tác:
+![Throughput, p95, p99 và CPU theo số người dùng ảo](./docs/benchmark/phase1/breakpoint.png)
 
-| Nhóm thao tác | Endpoint | Median | P95 |
-| :--- | :--- | :--- | :--- |
-| Đọc dữ liệu | GET sản phẩm, khách hàng, chi tiết đơn, tồn kho | 7 - 10 ms | 18 - 55 ms |
-| Ghi có khóa dòng | Đặt đơn Hot, đặt đơn nhiều sản phẩm, nhập hàng | 27 - 59 ms | 74 - 180 ms |
-| Lịch sử đơn của khách | `GET /customers/{id}/orders` | 140 ms | 360 ms |
-| Đăng ký / đăng nhập | `POST /auth/register`, `POST /auth/login` | 230 - 330 ms | 380 - 480 ms |
+Độ trễ theo endpoint ở tải thường xem tại [`endpoints_average_load.png`](./docs/benchmark/phase1/endpoints_average_load.png). Chậm nhất: `POST /auth/login` (p95 88 ms), `GET /customers/{id}/orders` (71 ms), `POST /orders` (50 ms), `GET /orders?page` (47 ms). Các endpoint đọc sản phẩm và khách hàng đều dưới 10 ms.
 
-Số liệu của từng endpoint xem tại bảng thống kê trong Cell 10 của notebook.
+### 7.3. Nhận xét và hạn chế
 
-### 7.4. Phân tích request lỗi
+- Nút thắt là CPU: ở bậc cuối, 3 core của ứng dụng và MySQL gần như dùng hết (ứng dụng 51%, MySQL 49%). Throughput dừng ở khoảng 330 req/s, độ trễ tăng nhưng lỗi vẫn bằng 0.
+- Bài flash sale có p99 là 2074.9 ms (vượt 1000 ms) do 200 giao dịch xếp hàng chờ khóa dòng của cùng một sản phẩm. Tiêu chí của bài này là tính đúng đắn của dữ liệu (không bán vượt, không deadlock), và đã đạt.
+- Ứng dụng, MySQL và Locust chạy chung một máy nên con số tuyệt đối không phản ánh môi trường sản xuất; giá trị của baseline nằm ở việc so sánh trên cùng phần cứng. Kaggle không đảm bảo cùng loại CPU giữa các lần chạy, vì vậy chỉ so sánh trực tiếp khi mục Môi trường của hai báo cáo trùng nhau.
+- Breakpoint, spike và flash sale chỉ chạy một lần nên không có độ lệch chuẩn.
 
-| Số lần | Thao tác | Mã lỗi | Nguyên nhân | Đánh giá |
-| :--- | :--- | :--- | :--- | :--- |
-| 114 | Hủy đơn (`PATCH /orders/{id}`) | 403 | API chỉ dành cho ADMIN nhưng kịch bản gửi bằng token của user thường | Phân quyền hoạt động đúng; kịch bản cần dùng token admin |
-| 207 | Sửa khách hàng (`PUT /customers/{id}`) | 500 | Kịch bản gán cùng số điện thoại `0988889999` cho cả 3 khách hàng, vi phạm ràng buộc `UNIQUE` của cột `phone` | Lỗi hệ thống: cần kiểm tra trùng và trả về 400 thay vì 500 |
-| 71 | Nhập hàng (49), sửa sản phẩm (22) | 409 | Hai admin cùng cập nhật một sản phẩm | Đúng thiết kế: khóa lạc quan `@Version` (mục 5.5) |
+### 7.4. Chạy lại để đối chiếu ở Phase 2
 
-### 7.5. Kiểm tra CSDL sau bài test
-
-- Không có sản phẩm nào bị âm tồn kho, không xảy ra bán vượt tồn kho.
-- Có 2442 đơn hợp lệ: 2432 `PENDING`, 10 `COMPLETED`. Không có đơn `CANCELLED` vì toàn bộ request hủy đơn bị từ chối (mục 7.4).
-- Sản phẩm Hot còn 105, đã bán 2209. Tồn kho được Admin nhập thêm trong lúc chạy.
-- Notebook chưa ghi lại tổng số lượng nhập thêm, nên chưa kiểm tra được đẳng thức `tồn kho ban đầu + nhập thêm = còn lại + đã bán`.
-
-### 7.6. Tài nguyên hệ thống
-
-Biểu đồ CPU, RAM, throughput và độ trễ: [`kaggle_load_benchmark.png`](./kaggle_load_benchmark.png).
-
-| Chỉ số | Nhận xét |
-| :--- | :--- |
-| CPU | Khoảng 90% trong 20 giây đầu (BCrypt khi đăng ký, đăng nhập), sau đó dao động 35 - 75% |
-| RAM | RAM toàn máy tăng dần từ khoảng 1.96 GB lên khoảng 2.2 GB |
-| Throughput | Ổn định ở mức 75 - 80 RPS sau 30 giây đầu |
-| P95 theo thời gian | Khoảng 560 ms lúc bắt đầu, phần lớn thời gian ở mức 80 - 150 ms, có một đợt lên khoảng 300 ms gần cuối |
-
-Do tải được giữ cố định 100 users, bài test chưa xác định được số users tối đa mà hệ thống chịu được.
-
-### 7.7. Việc cần xử lý
-
-1. Sửa kịch bản hủy đơn trong notebook để dùng token admin, sau đó chạy lại.
-2. Kiểm tra trùng số điện thoại trong `CustomerService` và trả về 400.
-3. Bổ sung phân trang cho `GET /customers/{id}/orders`.
-4. Ghi lại số lượng nhập thêm trong notebook để kiểm tra được đẳng thức cân bằng tồn kho.
+Không đổi tham số nào trong `loadtest/`. Trong notebook, đặt `REFS = {"phase1": "808b8634c7832932fc06b495b21c0094d3939cfe", "phase2": "<commit Phase 2>"}`, chạy lại và so sánh với `docs/benchmark/phase1/REPORT.md`. Các bước chi tiết xem mục 8 của [`docs/load-testing.md`](./docs/load-testing.md).
