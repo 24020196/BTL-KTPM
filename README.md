@@ -51,7 +51,7 @@ Chi tiết kịch bản gây lỗi khi xử lý đồng thời (ghi đè tồn k
 
 ## PHẦN 4: NHỮNG ĐIỂM GỢI Ý CẢI TIẾN Ở PHASE 2
 
-Chi tiết các điểm gợi ý cải tiến ở Phase 2 (xử lý duplicate request, thu hồi Stateless JWT, chặn tự cấp quyền ADMIN khi đăng ký, mở rộng thực thể Employee, bộ lọc nâng cao, caching và audit log):
+Chi tiết các điểm gợi ý cải tiến ở Phase 2 (xử lý duplicate request, thu hồi Stateless JWT, chặn tự cấp quyền ADMIN khi đăng ký,xử lý bất đồng bộ và cảnh báo tồn kho chạm ngưỡng an toàn  mở rộng thực thể Employee, bộ lọc nâng cao, caching và audit log):
 - Xem chi tiết tại: [`docs/phase2-improvements.md`](./docs/phase2-improvements.md)
 
 ---

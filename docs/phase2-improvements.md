@@ -32,7 +32,18 @@
 - Loại bỏ trường `role` khỏi `RegisterRequest` và luôn gán cứng quyền mặc định `ROLE_USER` cho mọi tài khoản đăng ký qua endpoint công khai `POST /api/v1/auth/register`.
 - Tách việc khởi tạo tài khoản quản trị hoặc nâng quyền lên `ROLE_ADMIN` sang API quản trị riêng.
 
-## 4.4. Mở rộng xử lý nghiệp vụ và tối ưu hóa hiệu năng
+## 4.4. Xử lý bất đồng bộ và cảnh báo tồn kho chạm ngưỡng an toàn (Asynchronous Low-Stock Alert)
+
+**Kịch bản gây lỗi / Vấn đề hiệu năng:**
+
+- Khi khấu trừ tồn kho lúc tạo/cập nhật đơn hàng (`POST /api/v1/orders`, `PATCH /api/v1/orders/{id}`) hoặc khi điều chỉnh kho, nếu hệ thống gửi thông báo cảnh báo ngay trong luồng giao dịch chính (chờ SMTP Server), API sẽ bị chậm và kéo dài thời gian giữ khóa bi quan `SELECT ... FOR UPDATE` trên bảng `products`, gây nghẽn các giao dịch mua hàng đồng thời; hoặc gửi cảnh báo giả nếu giao dịch bị Rollback ở bước sau.
+
+**Hướng giải quyết đề xuất:**
+
+- **Bổ sung ngưỡng cảnh báo tồn kho:** Thêm cột `min_stock_threshold` vào bảng `products` với ngưỡng tồn kho an toàn mặc định (ví dụ `= 5`). Khi tồn kho sau khi trừ rơi từ trên ngưỡng xuống thấp hơn hoặc bằng ngưỡng an toàn (`oldStock > min_stock_threshold` và `newStock <= min_stock_threshold`), hệ thống sẽ kích hoạt cảnh báo cho Admin (tránh gửi lặp cảnh báo cho các đơn tiếp theo khi tồn kho đã ở dưới ngưỡng).
+- **Cô lập luồng giao dịch và luồng thông báo (Asynchronous Processing):** Việc gửi cảnh báo (qua Email / Log cảnh báo hệ thống) được tách rời hoàn toàn và chạy ngầm bất đồng bộ sau khi giao dịch chính đã hoàn tất (`After-Commit` thông qua `@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)` kết hợp `@Async`).
+
+## 4.5. Mở rộng xử lý nghiệp vụ và tối ưu hóa hiệu năng
 
 **Mở rộng thực thể tham gia vào hệ thống (Employee):**
 
