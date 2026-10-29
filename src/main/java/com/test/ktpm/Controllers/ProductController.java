@@ -48,9 +48,9 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductById(id));
     }
 
-    @Operation(summary = "Tạo mới sản phẩm")
+    @Operation(summary = "Tạo mới sản phẩm/ Cập nhật số lượng")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Tạo mới sản phẩm thành công"),
+            @ApiResponse(responseCode = "201", description = "Tạo mới sản phẩm/ Cập nhật số lượng thành công"),
             @ApiResponse(responseCode = "400", description = "Dữ liệu nhập vào không hợp lệ"),
             @ApiResponse(responseCode = "401", description = "Chưa xác thực (Unauthorized)"),
             @ApiResponse(responseCode = "403", description = "Không có quyền truy cập (Cần quyền ROLE_ADMIN)")
