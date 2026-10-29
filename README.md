@@ -141,7 +141,7 @@ BTL-KTPM/
 | Mapper | Chuyển đổi Entity và DTO | `ProductMapper.patchEntity` |
 | Exceptions | Chuẩn hóa định dạng lỗi JSON trả về Client | `GlobalExceptionHandler` |
 
-### 5.6. Cơ sở dữ liệu
+### 5.5. Cơ sở dữ liệu
 
 | Bảng | Khóa chính | Khóa ngoại / Ràng buộc |
 | :--- | :--- | :--- |
