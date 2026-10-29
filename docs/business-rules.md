@@ -10,13 +10,13 @@
 
 ## b. Nghiệp vụ Quản lý khách hàng
 
-- Kiểm soát tính duy nhất của Email và Số điện thoại trên toàn hệ thống khi tạo mới cũng như khi cập nhật hồ sơ.
+- Kiểm soát tính duy nhất của mã khách hàng và số điện thoại trên toàn hệ thống khi tạo mới cũng như khi cập nhật hồ sơ.
 - Hỗ trợ tra cứu lịch sử đơn hàng theo từng khách hàng.
 
 ## c. Nghiệp vụ Quản lý Tồn kho
 
 - **Bảo toàn lịch sử và trạng thái kinh doanh:** Sản phẩm không sử dụng cơ chế xóa khỏi CSDL.
-- Mỗi sản phẩm có trạng thái hoạt động (`ACTIVE` - Đang kinh doanh, `INACTIVE` - Ngừng kinh doanh). Chỉ các sản phẩm `ACTIVE` mới được phép giao dịch.
+- Mỗi sản phẩm có trạng thái hoạt động (`ACTIVE` - Đang kinh doanh, `INACTIVE` - Ngừng kinh doanh). Chỉ các sản phẩm ở trạng thái `ACTIVE` mới được phép giao dịch.
 - **Cô lập nghiệp vụ sửa thông tin và điều chỉnh kho:** Việc cập nhật thông tin định danh (tên, giá bán, trạng thái) được tách rời hoàn toàn khỏi việc cập nhật số lượng tồn kho. Tồn kho chỉ biến động qua các luồng duy nhất:
   1. Khởi tạo sản phẩm ban đầu.
   2. Điều chỉnh kiểm kê/nhập hàng tăng giảm theo lượng chênh lệch.
@@ -38,7 +38,7 @@
 
 | Trạng thái hiện tại | Được phép chuyển sang | Hành vi nghiệp vụ chi tiết |
 | :--- | :--- | :--- |
-| `PENDING` | `SHIPPING` hoặc `CANCELLED` | Khởi tạo qua `POST /orders` (đã trừ kho & snapshot giá). Cho phép chuyển sang `SHIPPING` (xuất kho giao) hoặc `CANCELLED` (Transaction: hoàn trả tồn kho). |
+| `PENDING` | `SHIPPING` hoặc `CANCELLED` | Khởi tạo qua `POST /orders` (đã trừ kho & snapshot giá). Cho phép chuyển sang `SHIPPING` (Đang giao hàng) hoặc `CANCELLED` (Transaction: hoàn trả tồn kho). |
 | `SHIPPING` | `COMPLETED` hoặc `CANCELLED` | Cho phép chuyển sang `COMPLETED` (giao thành công - chốt đơn) hoặc `CANCELLED` (Transaction: hoàn trả tồn kho, kể cả khi SP đã `INACTIVE`). |
 | `COMPLETED` / `CANCELLED` | Khóa hoàn toàn | **TRẠNG THÁI KHÓA CỨNG (TERMINAL STATES):** Chặn tuyệt đối mọi request đổi trạng thái để bảo vệ doanh thu và chống lỗi hoàn kho 2 lần (Double Restock). |
 

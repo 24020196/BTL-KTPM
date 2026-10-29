@@ -1,4 +1,4 @@
-# KTPM - Hệ thống Quản lý Kho hàng, Khách hàng và Đơn hàng
+# KTPM - Hệ thống Quản lý Kho hàng
 
 ## Mục lục
 
@@ -15,17 +15,16 @@
 ## PHẦN 1: MÔ TẢ BÀI TOÁN VÀ NGHIỆP VỤ CƠ BẢN
 
 ### 1.1. Tổng quan bài toán
-
-Hệ thống cung cấp nền tảng quản lý kho hàng, quan hệ khách hàng thông qua giao thức RESTful API. Mục tiêu cốt lõi là số hóa quy trình vận hành thương mại, chăm sóc khách hàng, kiểm soát hàng hóa và xử lý giao dịch đơn hàng.
+Hệ thống cung cấp nền tảng quản lý tồn kho và quan hệ khách hàng thông qua giao thức RESTful API. Mục tiêu cốt lõi là số hóa quy trình xử lý giao dịch đơn hàng, chăm sóc khách hàng và kiểm soát chặt chẽ biến động hàng hóa tồn kho.
 
 ### 1.2. Mô hình thực thể cốt lõi
 
 | Thực thể | Vai trò trong hệ thống | Mối quan hệ nghiệp vụ |
 | :--- | :--- | :--- |
 | 1. User | Tài khoản định danh truy cập hệ thống. | Phân quyền người dùng (ADMIN / USER), xác thực qua JWT. |
-| 2. Customer | Hồ sơ khách hàng mua sắm. | Lưu trữ thông tin liên hệ và sở hữu lịch sử nhiều đơn hàng. |
-| 3. Product | Danh mục hàng hóa thương mại. | Quản lý đơn giá và tồn kho; tham chiếu trong chi tiết đơn hàng. |
-| 4. Order & Order Details | Giao dịch mua bán. | Kết nối Customer và danh sách Product trong một giao dịch duy nhất. |
+| 2. Customer | Hồ sơ khách hàng mua sắm. | Lưu trữ thông tin liên hệ và lịch sử giao dịch các đơn hàng. |
+| 3. Product | Danh mục hàng hóa thương mại. | Quản lý đơn giá và tồn kho; tham chiếu trong chi tiết đơn hàng (OrderDetails). |
+| 4. Order & Order Details | Giao dịch mua bán. | Kết nối Customer và danh sách Product trong một đơn hàng duy nhất. |
 
 ### 1.3. Quy trình và quy tắc nghiệp vụ cơ bản
 
@@ -37,9 +36,9 @@ Chi tiết quy trình và quy tắc nghiệp vụ của từng phân hệ (Xác 
 ## PHẦN 2: ĐẶC TẢ CÁC API (RESTFUL API SPECIFICATION)
 
 - **Base URL:** `http://localhost:3000/api/v1`
-- **Tài liệu tương tác (Swagger UI):** `http://localhost:3000/swagger-ui/index.html`
-- **File đặc tả OpenAPI (JSON):** [`docs/openapi.json`](./docs/openapi.json)
-- **Xem chi tiết đặc tả các endpoint:** [`docs/api-specification.md`](./docs/api-specification.md)
+- **Swagger UI:** `http://localhost:3000/swagger-ui/index.html`
+- **Đặc tả OpenAPI (JSON):** [`docs/openapi.json`](./docs/openapi.json)
+- **Chi tiết đặc tả API:** [`docs/api-specification.md`](./docs/api-specification.md)
 
 ---
 
@@ -52,7 +51,7 @@ Chi tiết kịch bản gây lỗi khi xử lý đồng thời (ghi đè tồn k
 
 ## PHẦN 4: NHỮNG ĐIỂM GỢI Ý CẢI TIẾN Ở PHASE 2
 
-Chi tiết các điểm gợi ý cải tiến ở Phase 2 (xử lý duplicate request, thu hồi Stateless JWT, mở rộng thực thể Employee, bộ lọc nâng cao, caching và audit log):
+Chi tiết các điểm gợi ý cải tiến ở Phase 2 (xử lý duplicate request, thu hồi Stateless JWT, chặn tự cấp quyền ADMIN khi đăng ký, mở rộng thực thể Employee, bộ lọc nâng cao, caching và audit log):
 - Xem chi tiết tại: [`docs/phase2-improvements.md`](./docs/phase2-improvements.md)
 
 ---
@@ -85,7 +84,7 @@ Client
   -> MySQL
 ```
 
-Dữ liệu trả về được Mapper chuyển từ Entity sang DTO trước khi gửi cho Client.
+Dữ liệu đầu vào và đầu ra được Mapper chuyển đổi giữa Entity và Model (`Request` / `Response`) trước khi trả về Client.
 
 ### 5.3. Cấu trúc thư mục
 
@@ -137,8 +136,8 @@ BTL-KTPM/
 | Service | Thực thi quy tắc nghiệp vụ, quản lý transaction (`@Transactional`), khóa dữ liệu | `OrderService.createOrder` |
 | Repository | Truy vấn CSDL qua Spring Data JPA | `ProductRepository.findAllByIdWithLock` |
 | Entity | Ánh xạ bảng CSDL, khai báo quan hệ | `Order` 1-n `OrderDetail` |
-| Model (DTO) | Tách biệt dữ liệu API với cấu trúc bảng | `ProductPatchRequest`, `OrderResponse` |
-| Mapper | Chuyển đổi Entity và DTO | `ProductMapper.patchEntity` |
+| Model (`Request` / `Response`) | Tách biệt dữ liệu đầu vào/đầu ra của API với cấu trúc bảng CSDL | `ProductPatchRequest`, `OrderResponse` |
+| Mapper | Chuyển đổi dữ liệu giữa Entity và Model | `ProductMapper.patchEntity` |
 | Exceptions | Chuẩn hóa định dạng lỗi JSON trả về Client | `GlobalExceptionHandler` |
 
 ### 5.5. Cơ sở dữ liệu
@@ -153,6 +152,7 @@ BTL-KTPM/
 
 - Schema được quản lý hoàn toàn bằng Flyway; Hibernate đặt `ddl-auto: validate` (chỉ kiểm tra, không tự sửa bảng).
 - Khi cần thay đổi schema, tạo file migration mới dạng `V{n}__mo_ta.sql`. Không sửa các file migration đã chạy vì Flyway sẽ báo lỗi checksum.
+- Xem chi tiết cấu trúc bảng, kiểu dữ liệu và ràng buộc tại: [`docs/database.md`](./docs/database.md)
 
 ---
 
@@ -174,7 +174,7 @@ cp .env.example .env
 Copy-Item .env.example .env
 ```
 
-| Biến | Ý nghĩa | Giá trị mẫu |
+| Biến | Ý nghĩa | Ví dụ |
 | :--- | :--- | :--- |
 | `DB_NAME` | Tên database | `KTPM` |
 | `DB_USERNAME` | Tài khoản MySQL | `root` |

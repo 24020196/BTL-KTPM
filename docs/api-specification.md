@@ -5,14 +5,14 @@
 - **Base URL:** `http://localhost:3000/api/v1`
 - **Định dạng dữ liệu:** JSON
 - **Cơ chế xác thực:** JWT Token (truyền qua Header `Authorization: Bearer <token>` đối với các endpoint yêu cầu đăng nhập)
-- **Tài liệu tương tác (Swagger UI):** `http://localhost:3000/swagger-ui/index.html`
-- **File đặc tả OpenAPI 3.1:** [`openapi.json`](./openapi.json)
+- **Swagger UI:** `http://localhost:3000/swagger-ui/index.html`
+- **Đặc tả OpenAPI 3.1:** [`openapi.json`](./openapi.json)
 
 ## 2.1. Phân hệ Xác thực & Người dùng (Auth & Users)
 
 Mục tiêu: Quản lý đăng ký, đăng nhập cấp phát Token và quản trị tài khoản hệ thống.
 
-| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Quy tắc xử lý chính |
+| Method | Endpoint | Quyền hạn | Mô tả chức năng | Quy tắc nghiệp vụ chính |
 | :--- | :--- | :--- | :--- | :--- |
 | POST | `/auth/register` | Công khai | Đăng ký tài khoản mới | Kiểm tra trùng username; mã hóa password. |
 | POST | `/auth/login` | Công khai | Đăng nhập hệ thống | Đối chiếu mật khẩu; sinh JWT nếu hợp lệ. |
@@ -22,7 +22,7 @@ Mục tiêu: Quản lý đăng ký, đăng nhập cấp phát Token và quản t
 
 Mục tiêu: Quản lý hồ sơ thông tin khách hàng và tra cứu lịch sử mua sắm.
 
-| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Quy tắc xử lý chính |
+| Method | Endpoint | Quyền hạn | Mô tả chức năng | Quy tắc nghiệp vụ chính |
 | :--- | :--- | :--- | :--- | :--- |
 | GET | `/customers` | ADMIN, USER | Lấy danh sách khách hàng | Truy vấn danh sách khách hàng có phân trang. |
 | GET | `/customers/{id}` | ADMIN, USER | Xem thông tin 1 khách hàng | Xem chi tiết liên hệ và nhân viên Sales Rep phụ trách. |
@@ -34,7 +34,7 @@ Mục tiêu: Quản lý hồ sơ thông tin khách hàng và tra cứu lịch s�
 
 Mục tiêu: Quản lý danh mục hàng hóa, niêm yết giá và kiểm soát số lượng tồn kho.
 
-| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Quy tắc xử lý chính |
+| Method | Endpoint | Quyền hạn | Mô tả chức năng | Quy tắc nghiệp vụ chính |
 | :--- | :--- | :--- | :--- | :--- |
 | GET | `/products` | ADMIN, USER | Lấy danh sách sản phẩm | Lọc theo tên sản phẩm, khoảng giá hoặc trạng thái kho. |
 | GET | `/products/{id}` | ADMIN, USER | Xem chi tiết sản phẩm | Truy xuất tên, đơn giá hiện tại và số lượng tồn kho. |
@@ -45,7 +45,7 @@ Mục tiêu: Quản lý danh mục hàng hóa, niêm yết giá và kiểm soát
 
 Mục tiêu: Xử lý giao dịch mua bán trọn gói (gộp chung thông tin Order và Order Details).
 
-| Method | Endpoint | Role (Phân quyền) | Mô tả chức năng | Quy tắc xử lý chính |
+| Method | Endpoint | Quyền hạn | Mô tả chức năng | Quy tắc nghiệp vụ chính |
 | :--- | :--- | :--- | :--- | :--- |
 | GET | `/orders` | ADMIN, USER | Lấy danh sách đơn hàng | Hiển thị thông tin tóm tắt các đơn hàng (không kèm danh sách sản phẩm). |
 | GET | `/orders/{id}` | ADMIN, USER | Xem chi tiết đơn hàng | Trả về thông tin chung kèm danh sách sản phẩm (`order_details`). |
