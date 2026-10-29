@@ -7,7 +7,7 @@
 | Ngày cập nhật | 2026-10-29 |
 | Tác giả | Lực (`Luc102T`) |
 | Phạm vi | Đo đường cơ sở (baseline) của Phase 1; các nhóm làm Phase 2 dùng lại để đối chiếu |
-| Phiên bản được đo | Commit cuối của Phase 1 trên nhánh `main`; mã commit được ghi trong báo cáo `docs/benchmark/phase1/REPORT.md` |
+| Phiên bản được đo | Commit `808b8634c7832932fc06b495b21c0094d3939cfe` (xem `docs/benchmark/phase1/REPORT.md`) |
 | Mã nguồn bộ đo | [Thư mục `loadtest/`](../loadtest) |
 
 Tài liệu này mô tả cách kiểm thử tải hệ thống ở Phase 1: kiểm thử cái gì, bằng phương pháp nào, theo tiêu chí đạt nào và trong môi trường nào. Kết quả là đường cơ sở để các nhóm làm Phase 2 chạy lại cùng bộ đo và đối chiếu sau khi cải tiến. Cấu trúc tài liệu theo mẫu kế hoạch kiểm thử của chuẩn ISO/IEC/IEEE 29119-3. Kết quả của mỗi lần chạy được ghi trong báo cáo hoàn thành kiểm thử `REPORT.md`, do bộ đo sinh tự động.
