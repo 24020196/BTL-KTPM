@@ -73,7 +73,7 @@ Chi tiết các điểm gợi ý cải tiến ở Phase 2 (xử lý duplicate re
 
 ### 5.2. Kiến trúc phân tầng
 
-Ứng dụng tổ chức theo kiến trúc phân tầng (Layered Architecture). Một request đi qua các tầng theo thứ tự:
+Hệ thống tổ chức theo kiến trúc phân tầng (Layered Architecture). Một request đi qua các tầng theo thứ tự:
 
 ```
 Client
