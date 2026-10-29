@@ -15,12 +15,24 @@
 - Ở Phase 1, API `POST /api/v1/auth/login` cấp phát JWT Token theo cơ chế Stateless (Server không lưu trạng thái đăng nhập mà chỉ kiểm tra chữ ký và hạn sử dụng của Token trên Header `Authorization`).
 - Nếu một tài khoản User (quyền USER) bị lộ Token hoặc nhân viên bị cho nghỉ việc đột xuất khi Token vẫn còn hạn (ví dụ: 24 giờ), người này vẫn có thể dùng Token cũ gọi `GET /api/v1/customers` xem dữ liệu khách hàng hoặc gửi Request phá hoại hệ thống cho đến khi Token tự hết hạn.
 
-**Hướng giải quyết (kiến nghị nâng cấp):**
+**Hướng giải quyết đề xuất:**
 
 - Giảm thời gian sống của Access Token xuống ngắn (15-30 phút) kết hợp với Refresh Token.
 - Tích hợp bộ nhớ đệm (Redis Cache) ở Phase 2 để lưu danh sách đen (Token Blacklist) hoặc kiểm tra tức thời trạng thái hoạt động của nhân viên (`ACTIVE` / `TERMINATED`) trước khi cho phép thực thi Request.
 
-## 4.3. Mở rộng xử lý nghiệp vụ và tối ưu hóa hiệu năng
+## 4.3. Lỗ hổng tự cấp quyền ADMIN khi đăng ký (Privilege Escalation)
+
+**Kịch bản gây lỗi:**
+
+- Ở Phase 1, API đăng ký công khai `POST /api/v1/auth/register` nhận trực tiếp trường `role` từ `RegisterRequest` của Client trong `AuthService.register`.
+- Người dùng bất kỳ có thể truyền `"role": "ADMIN"` (hoặc `"ROLE_ADMIN"`) trong body khi đăng ký để tự tạo tài khoản quản trị và chiếm toàn quyền thao tác trên các API kho hàng, đơn hàng và danh sách người dùng.
+
+**Hướng giải quyết đề xuất:**
+
+- Loại bỏ trường `role` khỏi `RegisterRequest` và luôn gán cứng quyền mặc định `ROLE_USER` cho mọi tài khoản đăng ký qua endpoint công khai `POST /api/v1/auth/register`.
+- Tách việc khởi tạo tài khoản quản trị hoặc nâng quyền lên `ROLE_ADMIN` sang API quản trị riêng.
+
+## 4.4. Mở rộng xử lý nghiệp vụ và tối ưu hóa hiệu năng
 
 **Mở rộng thực thể tham gia vào hệ thống (Employee):**
 
@@ -36,4 +48,3 @@
 **Bổ sung bảng lịch sử biến động kho (Inventory Audit Log):**
 
 - Ghi nhận tự động mọi thay đổi về `qty` của Product (khi tạo sản phẩm `POST /api/v1/products`, điều chỉnh kho `PATCH /api/v1/products/{id}`, trừ kho khi `POST /api/v1/orders` hoặc hoàn kho khi `PATCH /api/v1/orders/{id}` sang `CANCELLED`), lưu rõ `employeeId`/User thực hiện và lý do điều chỉnh.
-
