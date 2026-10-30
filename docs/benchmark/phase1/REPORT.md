@@ -32,7 +32,8 @@
 
 ## 3. Kết quả theo bài kiểm thử
 
-Tiêu chí hiệu năng: p95 ≤ 500 ms, p99 ≤ 1000 ms, tỉ lệ lỗi ≤ 1.0%.
+- Tiêu chí đạt (SLO - mức chất lượng tối thiểu): p95 ≤ 500 ms, p99 ≤ 1000 ms, lỗi ≤ 1%.
+- Định luật Little: Với số người dùng cố định, throughput ≈ số người dùng / (thời gian nghỉ + thời gian phản hồi). Dùng để kiểm tra số đo có hợp lý không |
 
 ### 3.1. Smoke
 
