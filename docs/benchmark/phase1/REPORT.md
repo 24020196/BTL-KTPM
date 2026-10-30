@@ -2,8 +2,8 @@
 
 | Thông tin | Giá trị |
 | :--- | :--- |
-| Loại tài liệu | Báo cáo hoàn thành kiểm thử (test completion report) |
-| Kế hoạch kiểm thử | `docs/load-testing.md` |
+| Loại tài liệu | Báo cáo hoàn thành kiểm thử tải |
+| Kế hoạch kiểm thử tải | `docs/load-testing.md` |
 | Phiên bản được kiểm thử | `phase1`, commit `808b8634c7832932fc06b495b21c0094d3939cfe` |
 | Thời điểm chạy | 2026-10-29T15:51:54+0000 |
 
