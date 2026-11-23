@@ -1,0 +1,71 @@
+package org.example.controller;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.example.common.CurrentUser;
+import org.example.dto.CreateOrderRequest;
+import org.example.dto.OrderDto;
+import org.example.dto.OrderPage;
+import org.example.dto.StatusRequest;
+import org.example.entity.OrderStatus;
+import org.example.entity.OrderType;
+import org.example.service.OrderService;
+import org.example.shared.api.AuthenticatedUser;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+
+@RestController
+@RequestMapping(path = "/api/orders", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequiredArgsConstructor
+public class OrderController {
+
+    private final OrderService orderService;
+
+    @PostMapping
+    public ResponseEntity<OrderDto> create(@AuthenticationPrincipal AuthenticatedUser user,
+            @Valid @RequestBody CreateOrderRequest request) {
+        // Use the authenticated customer's ID.
+        OrderDto order = orderService.create(CurrentUser.id(user), request);
+        // Return the new order's location.
+        return ResponseEntity.created(URI.create("/api/orders/" + order.id()))
+                .cacheControl(CacheControl.noStore()).body(order);
+    }
+
+    @GetMapping
+    public ResponseEntity<OrderPage> list(@AuthenticationPrincipal AuthenticatedUser user,
+            @RequestParam(required = false) OrderStatus status, @RequestParam(required = false) OrderType orderType,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(orderService.list(CurrentUser.id(user), user.role(), status, orderType, page, size));
+    }
+
+    @GetMapping("/{orderId}")
+    public ResponseEntity<OrderDto> get(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable long orderId) {
+        return ok(orderService.get(CurrentUser.id(user), user.role(), orderId));
+    }
+
+    @DeleteMapping("/{orderId}")
+    public ResponseEntity<OrderDto> cancel(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable long orderId) {
+        return ok(orderService.cancel(CurrentUser.id(user), orderId));
+    }
+
+    @PostMapping("/{orderId}/confirm")
+    public ResponseEntity<OrderDto> confirm(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable long orderId) {
+        return ok(orderService.confirm(CurrentUser.id(user), orderId));
+    }
+
+    @PutMapping("/{orderId}/status")
+    public ResponseEntity<OrderDto> updateStatus(@AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable long orderId, @Valid @RequestBody StatusRequest request) {
+        return ok(orderService.updateStatus(CurrentUser.id(user), orderId, request.status()));
+    }
+
+    private static ResponseEntity<OrderDto> ok(OrderDto order) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(order);
+    }
+}

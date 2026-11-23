@@ -1,0 +1,21 @@
+target/
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+Thumbs.db
+
+# Auth/dev local artifacts
+.local/
+.venv/
+
+# Dataset Kaggle: tạo theo kaggle/script/README.md (bước 0), không commit
+kaggle/dataset/
+__pycache__/
